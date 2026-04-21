@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Key Colony Open – Tennis Tournament</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body,#root{min-height:100vh;}
+body{background:#080a0e;color:#e2dfd8;font-family:'DM Sans',sans-serif;font-size:14px;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:#0d0f14;}
+::-webkit-scrollbar-thumb{background:#222;border-radius:2px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const REGISTERED_PLAYERS_INIT = [
+  { id:"R1", name:"Rafael Mendoza de la Torre", email:"Rafa.mendo@icloud.com", ntrp:3.5, registered:"4/19/2026", paid:false },
+  { id:"R2", name:"Juancri Sánchez", email:"jcrisanchez@gmail.com", ntrp:4.5, registered:"4/19/2026", paid:false },
+  { id:"R3", name:"Mateo Marietti", email:"mateomarietti@gmail.com", ntrp:3.0, registered:"4/19/2026", paid:false },
+  { id:"R4", name:"Gon Bader", email:"Badergonzalo@yahoo.com.ar", ntrp:3.0, registered:"4/19/2026", paid:false },
+  { id:"R5", name:"Maximo Razetti", email:"Maximo.razetti@gmail.com", ntrp:3.5, registered:"4/21/2026", paid:false },
+  { id:"R6", name:"RAFAEL (Morla) ÁLVAREZ", email:"alvarezpaullier10@gmail.com", ntrp:3.5, registered:"4/21/2026", paid:false },
+];
+
+const EMPTY = (id,slot) => ({ id, name:`Open slot ${slot}`, email:"", ntrp:"—", registered:"—", paid:false, isEmpty:true });
+
+function buildGroups(reg) {
+  const filled=[...reg];
+  while(filled.length<12){ const s=filled.length+1; filled.push(EMPTY(`OPEN${s}`,s)); }
+  // Rafael Mendoza → Group C
+  const sw=[...filled]; const tmp=sw[0]; sw[0]=sw[8]; sw[8]=tmp;
+  return {
+    A: sw.slice(0,4).map((p,i)=>({...p,groupId:`A${i+1}`})),
+    B: sw.slice(4,8).map((p,i)=>({...p,groupId:`B${i+1}`})),
+    C: sw.slice(8,12).map((p,i)=>({...p,groupId:`C${i+1}`})),
+  };
+}
+
+const MATCHES=[
+  {group:"A",p1:"A1",p2:"A2",court:1,time:"5:15",matchNum:1},
+  {group:"A",p1:"A3",p2:"A4",court:2,time:"5:15",matchNum:2},
+  {group:"A",p1:"A1",p2:"A3",court:1,time:"5:25",matchNum:3},
+  {group:"A",p1:"A2",p2:"A4",court:2,time:"5:25",matchNum:4},
+  {group:"A",p1:"A1",p2:"A4",court:1,time:"5:35",matchNum:5},
+  {group:"A",p1:"A2",p2:"A3",court:2,time:"5:35",matchNum:6},
+  {group:"B",p1:"B1",p2:"B2",court:1,time:"5:45",matchNum:7},
+  {group:"B",p1:"B3",p2:"B4",court:2,time:"5:45",matchNum:8},
+  {group:"B",p1:"B1",p2:"B3",court:1,time:"5:55",matchNum:9},
+  {group:"B",p1:"B2",p2:"B4",court:2,time:"5:55",matchNum:10},
+  {group:"B",p1:"B1",p2:"B4",court:1,time:"6:05",matchNum:11},
+  {group:"B",p1:"B2",p2:"B3",court:2,time:"6:05",matchNum:12},
+  {group:"C",p1:"C1",p2:"C2",court:1,time:"6:15",matchNum:13},
+  {group:"C",p1:"C3",p2:"C4",court:2,time:"6:15",matchNum:14},
+  {group:"C",p1:"C1",p2:"C3",court:1,time:"6:25",matchNum:15},
+  {group:"C",p1:"C2",p2:"C4",court:2,time:"6:25",matchNum:16},
+  {group:"C",p1:"C1",p2:"C4",court:1,time:"6:35",matchNum:17},
+  {group:"C",p1:"C2",p2:"C3",court:2,time:"6:35",matchNum:18},
+];
+
+function calcStandings(groups,results){
+  const out={};
+  for(const [g,players] of Object.entries(groups)){
+    out[g]=players.map(p=>{
+      let w=0,l=0,gw=0,gl=0;
+      results.forEach(r=>{
+        if(r.s1===null||r.s1===undefined) return;
+        if(r.p1===p.groupId){gw+=r.s1;gl+=r.s2;if(r.s1>r.s2)w++;else l++;}
+        if(r.p2===p.groupId){gw+=r.s2;gl+=r.s1;if(r.s2>r.s1)w++;else l++;}
+      });
+      const ratio=gl===0?gw:parseFloat((gw/gl).toFixed(2));
+      return {...p,w,l,gw,gl,pts:w*2,ratio};
+    }).sort((a,b)=>b.pts-a.pts||b.ratio-a.ratio);
+  }
+  return out;
+}
+
+function bestRunner(standings){
+  return Object.values(standings).map(s=>s[1]).filter(Boolean).sort((a,b)=>b.pts-a.pts||b.ratio-a.ratio)[0];
+}
+
+function ntrpCol(n){
+  const v=parseFloat(n);
+  if(v>=4.5) return ["#8b5cf6","#1e1630"];
+  if(v>=4.0) return ["#10b981","#001a0e"];
+  if(v>=3.5) return ["#f59e0b","#171200"];
+  return ["#60a5fa","#0f1e30"];
+}
+
+const GC={A:["#f59e0b","#171200","#251d00"],B:["#10b981","#001a0e","#002a18"],C:["#8b5cf6","#100018","#1a1030"]};
+
+const S=`
+.app{min-height:100vh;}
+.hdr{background:#0b0d12;border-bottom:1px solid #1a1d26;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;gap:8px;flex-wrap:wrap;}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:3px;color:#fff;white-space:nowrap;}
+.logo span{color:#f59e0b;}
+.hdr-r{font-size:10px;color:#4b5563;text-align:right;line-height:1.5;white-space:nowrap;}
+.nav{display:flex;gap:1px;background:#0d0f14;border-radius:8px;padding:2px;border:1px solid #1a1d26;flex-wrap:wrap;}
+.nb{padding:5px 10px;border-radius:5px;border:none;background:transparent;color:#4b5563;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.nb.active{background:#1a1d26;color:#e2dfd8;}
+.nb:hover:not(.active){color:#9ca3af;}
+.main{padding:16px;max-width:1080px;margin:0 auto;}
+.pt{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:#fff;margin-bottom:2px;}
+.ps{font-size:12px;color:#4b5563;margin-bottom:18px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+@media(max-width:600px){.g2,.g3,.g4{grid-template-columns:1fr 1fr;}}
+@media(max-width:400px){.g2,.g3,.g4{grid-template-columns:1fr;}}
+.card{background:#0b0d12;border:1px solid #1a1d26;border-radius:12px;overflow:hidden;}
+.ch{padding:9px 13px;border-bottom:1px solid #1a1d26;display:flex;align-items:center;justify-content:space-between;}
+.ct{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#4b5563;}
+.cb{padding:13px;}
+.mc{background:#0b0d12;border:1px solid #1a1d26;border-radius:10px;padding:11px 13px;}
+.ml{font-size:10px;color:#4b5563;margin-bottom:2px;letter-spacing:.06em;text-transform:uppercase;}
+.mv{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;color:#f0ede8;line-height:1;}
+.ms2{font-size:10px;color:#374151;margin-top:2px;}
+.gc{border-radius:12px;overflow:hidden;border:1px solid #1a1d26;}
+.gh{padding:9px 13px;display:flex;align-items:center;justify-content:space-between;}
+.gl2{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;}
+.st{width:100%;border-collapse:collapse;}
+.st th{font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:#374151;padding:6px 9px;text-align:left;border-bottom:1px solid #141720;}
+.st td{padding:7px 9px;font-size:12px;border-bottom:1px solid #0f1118;}
+.st tr:last-child td{border-bottom:none;}
+.st tr.qualify td{color:#e2dfd8;}
+.st tr.dim td{color:#374151;}
+.rn{font-family:'Bebas Neue',sans-serif;font-size:16px;color:#374151;}
+.rn.top{color:#f59e0b;}
+.qdot{width:5px;height:5px;border-radius:50%;background:#10b981;display:inline-block;margin-right:4px;}
+.rdot{width:5px;height:5px;border-radius:50%;background:#f59e0b;display:inline-block;margin-right:4px;}
+.mi{display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:8px;margin-bottom:3px;background:#0d0f14;border:1px solid #1a1d26;transition:border-color .15s;}
+.mi.played{border-color:#1a2a1a;}
+.mi:hover{border-color:#252830;}
+.mt2{font-size:11px;color:#374151;min-width:32px;font-variant-numeric:tabular-nums;}
+.mp2{flex:1;font-size:12px;color:#9ca3af;line-height:1.4;}
+.msc{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:#e2dfd8;}
+.msc.empty{color:#1e2028;}
+.cpill{font-size:10px;padding:2px 5px;border-radius:5px;font-weight:500;white-space:nowrap;}
+.c1p{background:#1a2535;color:#60a5fa;}
+.c2p{background:#152a1f;color:#6ee7b7;}
+.gpill{font-size:10px;padding:2px 5px;border-radius:5px;font-weight:500;}
+.gA{background:#251d00;color:#f59e0b;}
+.gB{background:#002a18;color:#10b981;}
+.gC{background:#1a1030;color:#8b5cf6;}
+.si{background:#141720;border:1px solid #252830;border-radius:5px;color:#e2dfd8;font-family:'Bebas Neue',sans-serif;font-size:18px;width:32px;text-align:center;padding:3px 0;outline:none;}
+.si:focus{border-color:#f59e0b;}
+.sbtn{background:#f59e0b;color:#08090c;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s;}
+.sbtn:hover{background:#fbbf24;}
+.sbtn.ghost{background:transparent;border:1px solid #252830;color:#4b5563;}
+.sbtn.ghost:hover{color:#9ca3af;border-color:#374151;}
+.sbtn.green{background:#10b981;color:#001a0e;}
+.sbtn.green:hover{background:#34d399;}
+.bm{background:#0b0d12;border:1px solid #1a1d26;border-radius:10px;overflow:hidden;min-width:200px;}
+.bp{padding:8px 12px;font-size:12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #0f1118;}
+.bp:last-child{border-bottom:none;}
+.bp.winner{background:#0f2a0f;color:#4ade80;}
+.bp.tbd{color:#374151;font-style:italic;}
+.bsc{font-family:'Bebas Neue',sans-serif;font-size:16px;margin-left:6px;}
+.bl{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:#374151;padding:5px 12px;background:#080a0e;border-bottom:1px solid #0f1118;}
+.div{display:flex;align-items:center;gap:8px;margin:16px 0 10px;}
+.dl{flex:1;height:1px;background:#1a1d26;}
+.dt{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#374151;}
+.pr2{display:flex;align-items:center;gap:9px;padding:8px 12px;border-bottom:1px solid #0f1118;}
+.pr2:last-child{border-bottom:none;}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;}
+.nb2{font-size:10px;padding:2px 6px;border-radius:5px;background:#141720;color:#6b7280;font-weight:500;}
+.ir{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #0f1118;font-size:12px;}
+.ir:last-child{border-bottom:none;}
+.il{color:#4b5563;}
+.iv{color:#e2dfd8;font-weight:500;text-align:right;}
+.tb{display:flex;gap:2px;background:#0b0d12;border-radius:7px;padding:2px;margin-bottom:12px;border:1px solid #1a1d26;}
+.tbb{flex:1;padding:5px;border:none;background:transparent;color:#4b5563;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;border-radius:5px;transition:all .15s;}
+.tbb.active{background:#1a1d26;color:#e2dfd8;}
+.wb{background:#0a1a0a;border:1px solid #1e4a1e;border-radius:12px;padding:16px 20px;text-align:center;margin-bottom:16px;}
+.wn{font-family:'Bebas Neue',sans-serif;font-size:38px;color:#4ade80;letter-spacing:3px;}
+.ld{width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block;}
+.pulse{animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fadeIn .2s ease both;}
+.rr{display:flex;align-items:center;gap:9px;padding:8px 13px;border-bottom:1px solid #0f1118;}
+.rr:hover{background:#0d0f14;}
+.pb{font-size:10px;padding:2px 8px;border-radius:9px;font-weight:500;white-space:nowrap;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.py{background:#0f2a0f;color:#4ade80;}
+.pn{background:#1a1000;color:#f59e0b;}
+.os{opacity:.35;}
+.rfbtn{display:flex;align-items:center;gap:4px;font-size:11px;color:#4b5563;background:transparent;border:1px solid #1a1d26;border-radius:5px;padding:3px 8px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.rfbtn:hover{color:#9ca3af;border-color:#374151;}
+.spin{animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.gs{cursor:grab;transition:opacity .15s;}
+.gs:active{cursor:grabbing;opacity:.7;}
+`;
+
+function App(){
+  const [page,setPage]=useState("dashboard");
+  const [reg,setReg]=useState(REGISTERED_PLAYERS_INIT);
+  const [loading,setLoading]=useState(false);
+  const [lastSync,setLastSync]=useState("loaded from sheet");
+  const [gTab,setGTab]=useState("A");
+  const [groups,setGroups]=useState(()=>buildGroups(REGISTERED_PLAYERS_INIT));
+  const [results,setResults]=useState(MATCHES.map(m=>({...m,s1:null,s2:null})));
+  const [finals,setFinals]=useState({sf1:{p1:null,p2:null,s1:null,s2:null},sf2:{p1:null,p2:null,s1:null,s2:null},final:{p1:null,p2:null,s1:null,s2:null}});
+  const [esc,setEsc]=useState({});
+  const [ef,setEf]=useState({});
+  const [drag,setDrag]=useState(null);
+
+  const std=calcStandings(groups,results.filter(r=>r.s1!==null));
+  const br=bestRunner(std);
+  const played=results.filter(r=>r.s1!==null).length;
+  const paid=reg.filter(r=>r.paid).length;
+  const champ=finals.final.s1!==null?(finals.final.s1>finals.final.s2?finals.final.p1:finals.final.p2):null;
+
+  function getP(gid){for(const ps of Object.values(groups)){const p=ps.find(x=>x.groupId===gid);if(p)return p;}return null;}
+  function getName(gid){const p=getP(gid);return p?p.name:gid;}
+
+  function togglePaid(id){setReg(prev=>prev.map(p=>p.id===id?{...p,paid:!p.paid}:p));}
+
+  function saveScore(idx){
+    const e=esc[idx]; if(!e||e.s1===""||e.s2==="") return;
+    const s1=parseInt(e.s1),s2=parseInt(e.s2); if(isNaN(s1)||isNaN(s2)) return;
+    setResults(prev=>prev.map((r,i)=>i===idx?{...r,s1,s2}:r));
+    setEsc(prev=>{const n={...prev};delete n[idx];return n;});
+  }
+
+  function saveFinal(key){
+    const e=ef[key]; if(!e) return;
+    const s1=parseInt(e.s1),s2=parseInt(e.s2); if(isNaN(s1)||isNaN(s2)) return;
+    setFinals(prev=>({...prev,[key]:{...prev[key],s1,s2}}));
+    setEf(prev=>{const n={...prev};delete n[key];return n;});
+  }
+
+  function fillBracket(){
+    setFinals(prev=>({
+      sf1:{...prev.sf1,p1:std.A?.[0]?.groupId||null,p2:br?.groupId||null},
+      sf2:{...prev.sf2,p1:std.B?.[0]?.groupId||null,p2:std.C?.[0]?.groupId||null},
+      final:prev.final
+    }));
+  }
+
+  useEffect(()=>{
+    const sf1w=finals.sf1.s1!==null?(finals.sf1.s1>finals.sf1.s2?finals.sf1.p1:finals.sf1.p2):null;
+    const sf2w=finals.sf2.s1!==null?(finals.sf2.s1>finals.sf2.s2?finals.sf2.p1:finals.sf2.p2):null;
+    if(sf1w||sf2w) setFinals(prev=>({...prev,final:{...prev.final,p1:sf1w,p2:sf2w}}));
+  },[finals.sf1.s1,finals.sf1.s2,finals.sf2.s1,finals.sf2.s2]);
+
+  function handleDrop(e,tGid){
+    e.preventDefault();
+    if(!drag||drag===tGid) return;
+    setGroups(prev=>{
+      const next=JSON.parse(JSON.stringify(prev));
+      let sp,tp;
+      for(const g of Object.keys(next)) for(const p of next[g]){if(p.groupId===drag) sp=p; if(p.groupId===tGid) tp=p;}
+      for(const g of Object.keys(next)) for(let i=0;i<next[g].length;i++){
+        if(next[g][i].groupId===drag&&tp) next[g][i]={...tp,groupId:drag};
+        else if(next[g][i].groupId===tGid&&sp) next[g][i]={...sp,groupId:tGid};
+      }
+      return next;
+    });
+    setDrag(null);
+  }
+
+  const pages=[
+    {id:"dashboard",label:"Dashboard"},
+    {id:"registrations",label:"Players"},
+    {id:"groups",label:"Groups"},
+    {id:"fixture",label:"Fixture"},
+    {id:"standings",label:"Standings"},
+    {id:"bracket",label:"Bracket"},
+    {id:"info",label:"Info"},
+  ];
+
+  return (
+    <div className="app">
+      <style>{S}</style>
+      <div className="hdr">
+        <div className="logo">KEY COLONY <span>OPEN</span></div>
+        <nav className="nav">
+          {pages.map(p=>(
+            <button key={p.id} className={`nb${page===p.id?" active":""}`} onClick={()=>setPage(p.id)}>{p.label}</button>
+          ))}
+        </nav>
+        <div className="hdr-r">Fri Apr 25 · 5–8 PM<br/>Key Colony Beach</div>
+      </div>
+
+      <div className="main fade" key={page}>
+
+        {/* DASHBOARD */}
+        {page==="dashboard"&&(<>
+          {champ&&<div className="wb"><div style={{fontSize:10,letterSpacing:".1em",color:"#4b5563",textTransform:"uppercase",marginBottom:3}}>Champion</div><div className="wn">{getName(champ)}</div><div style={{fontSize:11,color:"#4ade80",marginTop:3}}>Key Colony Open 2025</div></div>}
+          <div className="pt">Dashboard</div>
+          <div className="ps"><span className="ld pulse"/>&nbsp;Live · Key Colony Open · Apr 25</div>
+          <div className="g4" style={{marginBottom:14}}>
+            <div className="mc"><div className="ml">Registered</div><div className="mv">{reg.length}</div><div className="ms2">of 12 spots</div></div>
+            <div className="mc"><div className="ml">Paid</div><div className="mv">{paid}</div><div className="ms2">${paid*40} collected</div></div>
+            <div className="mc"><div className="ml">Played</div><div className="mv">{played}</div><div className="ms2">of 18 matches</div></div>
+            <div className="mc"><div className="ml">Open spots</div><div className="mv">{Math.max(0,12-reg.length)}</div><div className="ms2">remaining</div></div>
+          </div>
+          <div className="g3" style={{marginBottom:14}}>
+            {["A","B","C"].map(g=>{
+              const [ac,,hbg]=GC[g];
+              return(<div key={g} className="gc" style={{background:"#0b0d12"}}>
+                <div className="gh" style={{background:hbg}}>
+                  <span className="gl2" style={{color:ac}}>Group {g}</span>
+                  <span style={{fontSize:10,color:"#4b5563"}}>{results.filter(r=>r.group===g&&r.s1!==null).length}/6</span>
+                </div>
+                <table className="st" style={{background:"#0b0d12"}}>
+                  <thead><tr><th>#</th><th>Player</th><th>Pts</th></tr></thead>
+                  <tbody>{(std[g]||groups[g]).map((p,i)=>(
+                    <tr key={p.id||p.groupId} className={i===0?"qualify":"dim"}>
+                      <td><span className={`rn${i===0?" top":""}`}>{i+1}</span></td>
+                      <td>{i===0&&<span className="qdot"/>}{i===1&&p.id===br?.id&&<span className="rdot"/>}{p.name}</td>
+                      <td style={{fontWeight:500}}>{p.pts??0}</td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>);
+            })}
+          </div>
+          <div className="div"><div className="dl"/><div className="dt">Registrations</div><div className="dl"/></div>
+          <div className="card">
+            <div className="ch"><span className="ct">Signed up</span>
+              <a href="https://docs.google.com/spreadsheets/d/1SfcNA_a_BeM7A-VWnHSp2mC7f0pazcjntF92K2pqML4" target="_blank" style={{fontSize:11,color:"#60a5fa",textDecoration:"none"}}>Open sheet ↗</a>
+            </div>
+            {reg.map(p=>{const[ac,bg]=ntrpCol(p.ntrp);const ini=p.name.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase();return(
+              <div key={p.id} className="rr">
+                <div className="av" style={{background:bg,color:ac}}>{ini}</div>
+                <div style={{flex:1}}><div style={{fontSize:12,color:"#e2dfd8"}}>{p.name}</div><div style={{fontSize:10,color:"#374151"}}>{p.email}</div></div>
+                <span className="nb2">{p.ntrp}</span>
+                <span className={`pb ${p.paid?"py":"pn"}`}>{p.paid?"✓ Paid":"Pending"}</span>
+              </div>
+            );})}
+            {reg.length<12&&<div style={{padding:"9px 13px",fontSize:11,color:"#374151",textAlign:"center"}}>{12-reg.length} open {12-reg.length===1?"spot":"spots"} remaining</div>}
+          </div>
+        </>)}
+
+        {/* PLAYERS / REGISTRATIONS */}
+        {page==="registrations"&&(<>
+          <div className="pt">Players</div>
+          <div className="ps"><span className="ld pulse"/>&nbsp;{reg.length} registered · {paid} paid · ${paid*40} collected</div>
+          <div className="g4" style={{marginBottom:14}}>
+            <div className="mc"><div className="ml">Registered</div><div className="mv">{reg.length}</div></div>
+            <div className="mc"><div className="ml">Paid</div><div className="mv">{paid}</div></div>
+            <div className="mc"><div className="ml">Revenue</div><div className="mv">${paid*40}</div></div>
+            <div className="mc"><div className="ml">Open</div><div className="mv">{Math.max(0,12-reg.length)}</div></div>
+          </div>
+          <div className="card" style={{marginBottom:10}}>
+            <div className="ch"><span className="ct">Player roster · tap to mark paid</span>
+              <a href="https://docs.google.com/spreadsheets/d/1SfcNA_a_BeM7A-VWnHSp2mC7f0pazcjntF92K2pqML4" target="_blank" style={{fontSize:11,color:"#60a5fa",textDecoration:"none"}}>Open sheet ↗</a>
+            </div>
+            {reg.map((p,i)=>{
+              const[ac,bg]=ntrpCol(p.ntrp);const ini=p.name.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase();
+              const grp=Object.entries(groups).find(([,ps])=>ps.some(x=>x.id===p.id));
+              return(<div key={p.id} className="rr">
+                <div style={{fontSize:11,color:"#374151",minWidth:14}}>{i+1}</div>
+                <div className="av" style={{background:bg,color:ac}}>{ini}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,color:"#e2dfd8",fontWeight:500}}>{p.name}</div>
+                  <div style={{fontSize:10,color:"#374151",marginTop:1}}>{p.email} · {p.registered}</div>
+                </div>
+                <span className="nb2" style={{marginRight:4}}>{p.ntrp}</span>
+                {grp&&<span className={`gpill g${grp[0]}`} style={{marginRight:5}}>Grp {grp[0]}</span>}
+                <button onClick={()=>togglePaid(p.id)} className={`pb ${p.paid?"py":"pn"}`}>{p.paid?"✓ Paid":"Mark paid"}</button>
+              </div>);
+            })}
+          </div>
+          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+            <button className="sbtn green" onClick={()=>setGroups(buildGroups(reg))}>Auto-assign to groups</button>
+          </div>
+        </>)}
+
+        {/* GROUPS */}
+        {page==="groups"&&(<>
+          <div className="pt">Groups</div>
+          <div className="ps">Drag players between groups to reseed · {Math.max(0,12-reg.length)} open spots</div>
+          <div style={{display:"flex",gap:7,marginBottom:14,flexWrap:"wrap"}}>
+            <button className="sbtn green" onClick={()=>setGroups(buildGroups(reg))}>Reset auto-assign</button>
+          </div>
+          <div className="g3">
+            {["A","B","C"].map(g=>{
+              const[ac,hbg]=GC[g];
+              return(<div key={g} className="gc" style={{background:"#0b0d12"}}>
+                <div className="gh" style={{background:hbg}}>
+                  <span className="gl2" style={{color:ac}}>Group {g}</span>
+                  <span style={{fontSize:10,color:"#4b5563"}}>4 players</span>
+                </div>
+                {groups[g].map((p,i)=>{
+                  const[pac,pbg]=ntrpCol(p.ntrp);const ini=p.name.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase();
+                  return(<div key={p.groupId} className={`pr2 gs${p.isEmpty?" os":""}`}
+                    draggable={!p.isEmpty}
+                    onDragStart={e=>{setDrag(p.groupId);e.dataTransfer.effectAllowed="move";}}
+                    onDragOver={e=>e.preventDefault()}
+                    onDrop={e=>handleDrop(e,p.groupId)}>
+                    <div style={{fontSize:10,color:"#374151",minWidth:12}}>{i+1}</div>
+                    <div className="av" style={{background:pbg,color:pac,width:28,height:28,fontSize:10}}>{p.isEmpty?"?":ini}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:12,color:p.isEmpty?"#374151":"#e2dfd8"}}>{p.name}</div>
+                      {!p.isEmpty&&<div style={{fontSize:10,color:"#374151"}}>{p.email?.split("@")[0]}</div>}
+                    </div>
+                    {!p.isEmpty&&<span className="nb2">{p.ntrp}</span>}
+                  </div>);
+                })}
+              </div>);
+            })}
+          </div>
+          <div className="div"><div className="dl"/><div className="dt">Match schedule per group</div><div className="dl"/></div>
+          <div className="g3">
+            {["A","B","C"].map(g=>{
+              const[ac]=GC[g];
+              return(<div key={g} className="card">
+                <div className="ch"><span className="ct" style={{color:ac}}>Group {g}</span></div>
+                <div style={{padding:"6px 9px"}}>
+                  {MATCHES.filter(m=>m.group===g).map(m=>(
+                    <div key={m.matchNum} style={{display:"flex",gap:5,padding:"3px 0",borderBottom:"1px solid #0f1118",fontSize:11,color:"#6b7280",alignItems:"center"}}>
+                      <span style={{minWidth:28,color:"#374151",fontSize:10}}>{m.time}</span>
+                      <span className={`cpill ${m.court===1?"c1p":"c2p"}`}>C{m.court}</span>
+                      <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        {groups[g].find(p=>p.groupId===`${g}${m.p1[1]}`)?.name?.split(" ")[0]||m.p1}
+                        <span style={{color:"#1e2028"}}> v </span>
+                        {groups[g].find(p=>p.groupId===`${g}${m.p2[1]}`)?.name?.split(" ")[0]||m.p2}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>);
+            })}
+          </div>
+        </>)}
+
+        {/* FIXTURE */}
+        {page==="fixture"&&(<>
+          <div className="pt">Fixture</div>
+          <div className="ps">{played} of 18 played · tap "Enter score" after each match</div>
+          {["A","B","C"].map(g=>{
+            const[ac]=GC[g];
+            return(<div key={g} style={{marginBottom:16}}>
+              <div className="div"><div className="dl"/><div className="dt" style={{color:ac}}>Group {g}</div><div className="dl"/></div>
+              {results.filter(r=>r.group===g).map(r=>{
+                const idx=results.indexOf(r);const p1=getP(r.p1);const p2=getP(r.p2);
+                const done=r.s1!==null;const ed=esc[idx]!==undefined;
+                return(<div key={idx} className={`mi${done?" played":""}`} style={{marginBottom:4}}>
+                  <span className="mt2">{r.time}</span>
+                  <span className={`cpill ${r.court===1?"c1p":"c2p"}`}>C{r.court}</span>
+                  <span style={{fontSize:10,color:"#374151",minWidth:16}}>#{r.matchNum}</span>
+                  <span className="mp2">
+                    <span style={{color:done&&r.s1>r.s2?"#e2dfd8":"#6b7280"}}>{p1?.name||r.p1}</span>
+                    <span style={{color:"#1e2028"}}> vs </span>
+                    <span style={{color:done&&r.s2>r.s1?"#e2dfd8":"#6b7280"}}>{p2?.name||r.p2}</span>
+                  </span>
+                  {!ed&&!done&&<button className="sbtn ghost" onClick={()=>setEsc(prev=>({...prev,[idx]:{s1:"",s2:""}}))}>Enter</button>}
+                  {!ed&&done&&<span className="msc" style={{cursor:"pointer",color:r.s1>r.s2?"#4ade80":"#f87171"}} onClick={()=>setEsc(prev=>({...prev,[idx]:{s1:r.s1,s2:r.s2}}))}>{r.s1}–{r.s2}</span>}
+                  {ed&&<div style={{display:"flex",alignItems:"center",gap:4}}>
+                    <input className="si" maxLength={1} value={esc[idx].s1} onChange={e=>setEsc(prev=>({...prev,[idx]:{...prev[idx],s1:e.target.value}}))}/>
+                    <span style={{color:"#374151",fontFamily:"Bebas Neue",fontSize:14}}>–</span>
+                    <input className="si" maxLength={1} value={esc[idx].s2} onChange={e=>setEsc(prev=>({...prev,[idx]:{...prev[idx],s2:e.target.value}}))}/>
+                    <button className="sbtn" onClick={()=>saveScore(idx)}>Save</button>
+                  </div>}
+                </div>);
+              })}
+            </div>);
+          })}
+        </>)}
+
+        {/* STANDINGS */}
+        {page==="standings"&&(<>
+          <div className="pt">Standings</div>
+          <div className="ps">Live · green dot = advances · gold dot = best runner-up</div>
+          <div className="tb">
+            {["A","B","C"].map(g=><button key={g} className={`tbb${gTab===g?" active":""}`} onClick={()=>setGTab(g)}>Group {g}</button>)}
+          </div>
+          <div className="card" style={{marginBottom:10}}>
+            <div className="gh" style={{background:GC[gTab][1]}}>
+              <span className="gl2" style={{color:GC[gTab][0]}}>Group {gTab}</span>
+              <span style={{fontSize:10,color:"#4b5563"}}>{results.filter(r=>r.group===gTab&&r.s1!==null).length}/6 played</span>
+            </div>
+            <table className="st" style={{background:"#0b0d12"}}>
+              <thead><tr><th>#</th><th>Player</th><th>NTRP</th><th>W</th><th>L</th><th>GW</th><th>GL</th><th>Ratio</th><th>Pts</th></tr></thead>
+              <tbody>{(std[gTab]||groups[gTab]).map((p,i)=>(
+                <tr key={p.id||p.groupId} className={i===0?"qualify":"dim"}>
+                  <td><span className={`rn${i===0?" top":""}`}>{i+1}</span></td>
+                  <td>{i===0&&<span className="qdot"/>}{i===1&&p.id===br?.id&&<span className="rdot"/>}{p.name}</td>
+                  <td style={{color:"#4b5563"}}>{p.ntrp}</td>
+                  <td style={{color:"#4ade80"}}>{p.w??0}</td>
+                  <td style={{color:"#f87171"}}>{p.l??0}</td>
+                  <td>{p.gw??0}</td><td>{p.gl??0}</td>
+                  <td style={{color:"#6b7280"}}>{p.ratio??0}</td>
+                  <td style={{fontFamily:"Bebas Neue",fontSize:17,color:"#e2dfd8"}}>{p.pts??0}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <div className="card" style={{padding:10}}>
+            <div style={{fontSize:10,color:"#374151",letterSpacing:".07em",textTransform:"uppercase",marginBottom:7}}>Top 4 advancing to finals</div>
+            {["A","B","C"].map(g=>{const w=std[g]?.[0];return w?(
+              <div key={g} className="mi" style={{marginBottom:3}}>
+                <span className={`gpill g${g}`}>Grp {g}</span>
+                <span style={{fontSize:12,color:"#e2dfd8",flex:1}}>{w.name}</span>
+                <span style={{fontSize:10,color:"#4ade80"}}>Winner</span>
+              </div>):null;})}
+            {br&&<div className="mi">
+              <span className="gpill gA" style={{background:"#1a1000",color:"#f59e0b"}}>Best 2nd</span>
+              <span style={{fontSize:12,color:"#f59e0b",flex:1}}>{br.name}</span>
+              <span style={{fontSize:10,color:"#f59e0b"}}>Wildcard</span>
+            </div>}
+          </div>
+        </>)}
+
+        {/* BRACKET */}
+        {page==="bracket"&&(<>
+          <div className="pt">Bracket</div>
+          <div className="ps">Semis 7:05 PM · Final 7:40 PM</div>
+          <div style={{display:"flex",gap:7,marginBottom:16,flexWrap:"wrap"}}>
+            <button className="sbtn green" onClick={fillBracket}>Auto-fill from standings</button>
+            <button className="sbtn ghost" onClick={()=>{
+              const sf1w=finals.sf1.s1!==null?(finals.sf1.s1>finals.sf1.s2?finals.sf1.p1:finals.sf1.p2):null;
+              const sf2w=finals.sf2.s1!==null?(finals.sf2.s1>finals.sf2.s2?finals.sf2.p1:finals.sf2.p2):null;
+              setFinals(prev=>({...prev,final:{...prev.final,p1:sf1w,p2:sf2w}}));
+            }}>Update final from semis</button>
+          </div>
+          <div style={{display:"flex",gap:24,alignItems:"center",overflowX:"auto",paddingBottom:8}}>
+            <div>
+              <div style={{fontSize:10,color:"#374151",letterSpacing:".07em",textTransform:"uppercase",marginBottom:8}}>Semifinals · 7:05 PM</div>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {["sf1","sf2"].map((key,ki)=>{
+                  const m=finals[key];const w=m.s1!==null?(m.s1>m.s2?m.p1:m.p2):null;const ed=ef[key]!==undefined;
+                  return(<div key={key} className="bm">
+                    <div className="bl">SF{ki+1} · Court {ki+1} · 7:05 PM</div>
+                    {[{pid:m.p1,score:m.s1},{pid:m.p2,score:m.s2}].map((sl,si)=>(
+                      <div key={si} className={`bp${sl.pid===w?" winner":""}${!sl.pid?" tbd":""}`}>
+                        <span>{sl.pid?getName(sl.pid):"TBD"}</span>
+                        {sl.score!==null&&<span className="bsc">{sl.score}</span>}
+                      </div>
+                    ))}
+                    {!ed?<div style={{padding:"5px 10px"}}><button className="sbtn ghost" style={{fontSize:10}} onClick={()=>setEf(prev=>({...prev,[key]:{s1:m.s1??"",s2:m.s2??""}}))}>
+                      {m.s1!==null?"Edit":"Enter score"}
+                    </button></div>:
+                    <div style={{padding:"5px 10px",display:"flex",gap:4,alignItems:"center"}}>
+                      <input className="si" maxLength={1} value={ef[key].s1} onChange={e=>setEf(prev=>({...prev,[key]:{...prev[key],s1:e.target.value}}))}/>
+                      <span style={{color:"#374151"}}>–</span>
+                      <input className="si" maxLength={1} value={ef[key].s2} onChange={e=>setEf(prev=>({...prev,[key]:{...prev[key],s2:e.target.value}}))}/>
+                      <button className="sbtn" onClick={()=>saveFinal(key)}>Save</button>
+                    </div>}
+                  </div>);
+                })}
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",justifyContent:"center",gap:4,paddingTop:24}}>
+              <div style={{width:24,height:1,background:"#1a1d26"}}/>
+              <div style={{width:24,height:1,background:"#1a1d26"}}/>
+            </div>
+            <div>
+              <div style={{fontSize:10,color:"#4ade80",letterSpacing:".07em",textTransform:"uppercase",marginBottom:8}}>Final · 7:40 PM</div>
+              {(()=>{
+                const m=finals.final;const w=m.s1!==null?(m.s1>m.s2?m.p1:m.p2):null;const ed=ef["final"]!==undefined;
+                return(<div className="bm" style={{border:"1px solid #1e4a1e"}}>
+                  <div className="bl" style={{color:"#4ade80"}}>FINAL · Court 1</div>
+                  {[{pid:m.p1,score:m.s1},{pid:m.p2,score:m.s2}].map((sl,si)=>(
+                    <div key={si} className={`bp${sl.pid===w?" winner":""}${!sl.pid?" tbd":""}`}>
+                      <span>{sl.pid?getName(sl.pid):"TBD"}</span>
+                      {sl.score!==null&&<span className="bsc">{sl.score}</span>}
+                    </div>
+                  ))}
+                  {!ed?<div style={{padding:"5px 10px"}}><button className="sbtn" style={{fontSize:10}} onClick={()=>setEf(prev=>({...prev,final:{s1:m.s1??"",s2:m.s2??""}}))}>
+                    {m.s1!==null?"Edit":"Enter final score"}
+                  </button></div>:
+                  <div style={{padding:"5px 10px",display:"flex",gap:4,alignItems:"center"}}>
+                    <input className="si" maxLength={1} value={ef.final.s1} onChange={e=>setEf(prev=>({...prev,final:{...prev.final,s1:e.target.value}}))}/>
+                    <span style={{color:"#374151"}}>–</span>
+                    <input className="si" maxLength={1} value={ef.final.s2} onChange={e=>setEf(prev=>({...prev,final:{...prev.final,s2:e.target.value}}))}/>
+                    <button className="sbtn" onClick={()=>saveFinal("final")}>Save</button>
+                  </div>}
+                  {w&&<div style={{padding:"9px 12px",borderTop:"1px solid #1e4a1e",background:"#0a1a0a",textAlign:"center"}}>
+                    <div style={{fontSize:10,color:"#374151",letterSpacing:".07em",textTransform:"uppercase"}}>Champion</div>
+                    <div style={{fontFamily:"Bebas Neue",fontSize:20,color:"#4ade80",letterSpacing:2}}>{getName(w)}</div>
+                  </div>}
+                </div>);
+              })()}
+            </div>
+          </div>
+        </>)}
+
+        {/* INFO */}
+        {page==="info"&&(<>
+          <div className="pt">Info</div>
+          <div className="ps">Key Colony Open · Friday, April 25, 2025</div>
+          <div className="g2" style={{marginBottom:10}}>
+            <div className="card">
+              <div className="ch"><span className="ct">Event</span></div>
+              <div className="cb">
+                {[["Date","Fri Apr 25, 2025"],["Time","5:00 – 8:00 PM"],["Location","Key Colony Beach, FL"],["Courts","2 in use"],["Format","Group Stage + Finals"],["Entry","$40 via Zelle"]].map(([l,v])=>(
+                  <div key={l} className="ir"><span className="il">{l}</span><span className="iv">{v}</span></div>
+                ))}
+              </div>
+            </div>
+            <div className="card">
+              <div className="ch"><span className="ct">Prizes</span></div>
+              <div className="cb">
+                {[["Champion","Amazon gift card"],["Runner-up","Amazon gift card"],["All players","Drinks + finger food"],["Waiver","Required on form"],["Payment","Zelle to organizer"]].map(([l,v])=>(
+                  <div key={l} className="ir"><span className="il">{l}</span><span className="iv">{v}</span></div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="card" style={{marginBottom:10}}>
+            <div className="ch"><span className="ct">Schedule</span></div>
+            <div className="cb">
+              {[["5:00","Check-in","Players arrive, groups posted"],["5:15","Group stage","18 matches · 2 courts · ~90 min"],["7:00","Groups end","Standings calculated"],["7:05","Semifinals","Both courts · 1 set to 6"],["7:35","Break","Food setup · bracket posted"],["7:40","Final","Court 1 · 1 set to 6"],["8:00","Ceremony","Drinks · food · prizes"]].map(([t,e,n])=>(
+                <div key={t} style={{display:"flex",gap:9,padding:"6px 0",borderBottom:"1px solid #0f1118"}}>
+                  <span style={{fontFamily:"Bebas Neue",fontSize:13,color:"#f59e0b",minWidth:40}}>{t} PM</span>
+                  <div><div style={{fontSize:12,color:"#e2dfd8",fontWeight:500}}>{e}</div><div style={{fontSize:11,color:"#374151"}}>{n}</div></div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="card">
+            <div className="ch"><span className="ct">Rules</span></div>
+            <div className="cb">
+              {[["Group matches","1 set to 4 games, no-ad"],["Deuce","Sudden death — 1 point"],["Semis & Final","1 set to 6, tiebreak at 6-6"],["Advances","3 winners + best runner-up"],["Tiebreaker","Pts → H2H → Ratio → coin"]].map(([l,v])=>(
+                <div key={l} className="ir"><span className="il">{l}</span><span className="iv" style={{maxWidth:220,textAlign:"right"}}>{v}</span></div>
+              ))}
+            </div>
+          </div>
+        </>)}
+
+      </div>
+    </div>
+  );
+}
+
+const root=ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App/>);
+</script>
+</body>
+</html>
