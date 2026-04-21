@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<title>Key Colony Open</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body,#root{min-height:100vh;}
+body{background:#080a0e;color:#e2dfd8;font-family:'DM Sans',sans-serif;font-size:14px;-webkit-tap-highlight-color:transparent;}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-thumb{background:#333;border-radius:2px;}
+.wrap{padding:0 0 70px 0;}
+.topbar{background:#0b0d12;border-bottom:1px solid #1a1d26;padding:12px 14px 10px;display:flex;align-items:flex-end;justify-content:space-between;}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#fff;line-height:1;}
+.logo span{color:#f59e0b;}
+.topbar-meta{font-size:10px;color:#4b5563;text-align:right;line-height:1.5;}
+.page-content{padding:14px 12px 10px;max-width:600px;margin:0 auto;}
+.bnav{position:fixed;bottom:0;left:0;right:0;background:#0b0d12;border-top:1px solid #1a1d26;display:flex;z-index:999;height:62px;padding-bottom:env(safe-area-inset-bottom,0);}
+.bn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:transparent;color:#4b5563;font-size:9px;font-family:'DM Sans',sans-serif;cursor:pointer;gap:3px;padding:6px 2px;transition:color .15s;-webkit-tap-highlight-color:transparent;}
+.bn.on{color:#f59e0b;}
+.bn-ic{font-size:17px;line-height:1;}
+.card{background:#0b0d12;border:1px solid #1a1d26;border-radius:12px;overflow:hidden;margin-bottom:10px;}
+.ch{padding:10px 13px;border-bottom:1px solid #1a1d26;display:flex;align-items:center;justify-content:space-between;}
+.ct{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#4b5563;}
+.cb{padding:12px 13px;}
+.mets{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.mc{background:#0b0d12;border:1px solid #1a1d26;border-radius:10px;padding:11px 13px;}
+.ml{font-size:10px;color:#4b5563;margin-bottom:2px;letter-spacing:.06em;text-transform:uppercase;}
+.mv{font-family:'Bebas Neue',sans-serif;font-size:26px;color:#f0ede8;line-height:1;}
+.ms{font-size:10px;color:#374151;margin-top:2px;}
+.gc{border-radius:12px;overflow:hidden;border:1px solid #1a1d26;margin-bottom:8px;background:#0b0d12;}
+.gh{padding:10px 13px;display:flex;align-items:center;justify-content:space-between;}
+.gltr{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;}
+.st{width:100%;border-collapse:collapse;}
+.st th{font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:#374151;padding:6px 10px;text-align:left;border-bottom:1px solid #141720;}
+.st td{padding:7px 10px;font-size:12px;border-bottom:1px solid #0f1118;}
+.st tr:last-child td{border-bottom:none;}
+.st .q td{color:#e2dfd8;}
+.st .d td{color:#374151;}
+.rn{font-family:'Bebas Neue',sans-serif;font-size:15px;color:#374151;}
+.rn.t{color:#f59e0b;}
+.qdot{width:5px;height:5px;border-radius:50%;background:#10b981;display:inline-block;margin-right:4px;vertical-align:middle;}
+.rdot{width:5px;height:5px;border-radius:50%;background:#f59e0b;display:inline-block;margin-right:4px;vertical-align:middle;}
+.mi{display:flex;align-items:center;gap:6px;padding:9px 11px;border-radius:8px;margin-bottom:5px;background:#0d0f14;border:1px solid #1a1d26;transition:border-color .15s;}
+.mi.done{border-color:#1a2a1a;}
+.mtime{font-size:11px;color:#374151;min-width:34px;flex-shrink:0;}
+.mplayers{font-size:12px;color:#9ca3af;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mscore{font-family:'Bebas Neue',sans-serif;font-size:16px;flex-shrink:0;cursor:pointer;}
+.cpill{font-size:9px;padding:2px 5px;border-radius:4px;font-weight:500;white-space:nowrap;flex-shrink:0;}
+.c1{background:#1a2535;color:#60a5fa;}
+.c2{background:#152a1f;color:#6ee7b7;}
+.c3{background:#1e1a00;color:#facc15;}
+.c4{background:#2a1020;color:#e879f9;}
+.gpill{font-size:9px;padding:2px 5px;border-radius:4px;font-weight:500;flex-shrink:0;}
+.gA{background:#251d00;color:#f59e0b;}
+.gB{background:#002a18;color:#10b981;}
+.gC{background:#1a1030;color:#8b5cf6;}
+/* Score entry inline */
+.score-row{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.si{background:#141720;border:1px solid #2a2d36;border-radius:6px;color:#e2dfd8;font-family:'Bebas Neue',sans-serif;font-size:20px;width:34px;text-align:center;padding:3px 0;outline:none;flex-shrink:0;}
+.si:focus{border-color:#f59e0b;}
+.sbtn{background:#f59e0b;color:#08090c;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;flex-shrink:0;transition:background .1s;}
+.sbtn:active{background:#d97706;}
+.sbtn.ghost{background:transparent;border:1px solid #2a2d36;color:#6b7280;}
+.sbtn.ghost:active{background:#141720;}
+.sbtn.grn{background:#10b981;color:#001a0e;}
+.sbtn.red{background:#7f1d1d;color:#fca5a5;}
+.bm{background:#0b0d12;border:1px solid #1a1d26;border-radius:10px;overflow:hidden;margin-bottom:8px;}
+.bp{padding:9px 13px;font-size:13px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #0f1118;}
+.bp:last-child{border-bottom:none;}
+.bp.win{background:#0f2a0f;color:#4ade80;}
+.bp.tbd{color:#374151;font-style:italic;}
+.bsc{font-family:'Bebas Neue',sans-serif;font-size:16px;margin-left:6px;}
+.bl{font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:#374151;padding:5px 13px;background:#080a0e;border-bottom:1px solid #0f1118;}
+.div{display:flex;align-items:center;gap:8px;margin:14px 0 8px;}
+.dl{flex:1;height:1px;background:#1a1d26;}
+.dt{font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:#374151;white-space:nowrap;}
+.ir{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #0f1118;gap:8px;}
+.ir:last-child{border-bottom:none;}
+.il{color:#4b5563;font-size:12px;flex-shrink:0;}
+.iv{color:#e2dfd8;font-weight:500;font-size:12px;text-align:right;}
+.tb{display:flex;gap:2px;background:#0b0d12;border-radius:8px;padding:2px;margin-bottom:10px;border:1px solid #1a1d26;}
+.tbb{flex:1;padding:6px 4px;border:none;background:transparent;color:#4b5563;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;border-radius:6px;}
+.tbb.on{background:#1a1d26;color:#e2dfd8;}
+.av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0;}
+.nb{font-size:10px;padding:2px 6px;border-radius:4px;background:#141720;color:#6b7280;font-weight:500;}
+/* Payment toggle — big tappable */
+.pay-btn{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;transition:all .15s;flex-shrink:0;}
+.pay-btn.paid{background:#0f2a0f;color:#4ade80;border:1px solid #1e4a1e;}
+.pay-btn.unpaid{background:#1a1000;color:#f59e0b;border:1px solid #2a1a00;}
+.pay-btn:active{opacity:.8;}
+.pay-dot{width:7px;height:7px;border-radius:50%;}
+.rr{display:flex;align-items:center;gap:10px;padding:10px 13px;border-bottom:1px solid #0f1118;}
+.rr:last-child{border-bottom:none;}
+.wb{background:#0a1a0a;border:1px solid #1e4a1e;border-radius:12px;padding:16px;text-align:center;margin-bottom:12px;}
+.wn{font-family:'Bebas Neue',sans-serif;font-size:32px;color:#4ade80;letter-spacing:2px;}
+.pbar-w{background:#141720;border-radius:6px;height:8px;overflow:hidden;flex:1;}
+.pbar{height:100%;border-radius:6px;transition:width .6s ease;}
+
+.ld{width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block;vertical-align:middle;}
+@keyframes pp{0%,100%{opacity:1}50%{opacity:.4}}
+.pulse{animation:pp 2s infinite;}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fi .18s ease both;}
+.ptitle{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;margin-bottom:2px;}
+.psub{font-size:11px;color:#4b5563;margin-bottom:12px;display:flex;align-items:center;gap:5px;}
+/* Toast notification */
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#10b981;color:#001a0e;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:500;z-index:9999;pointer-events:none;transition:opacity .3s;}
+.toast.hide{opacity:0;}
+/* Saved indicator on score */
+.saved-badge{font-size:9px;padding:1px 5px;border-radius:4px;background:#0f2a0f;color:#4ade80;margin-left:4px;}
+/* Reset button */
+.reset-link{font-size:10px;color:#7f1d1d;cursor:pointer;text-decoration:underline;background:none;border:none;font-family:'DM Sans',sans-serif;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useCallback,useRef}=React;
+
+/* ─── DATA ─── */
+const PLAYERS_DEF=[
+  {id:"R1",name:"R. Mendoza",full:"Rafael Mendoza de la Torre",ntrp:3.5,registered:"4/19"},
+  {id:"R2",name:"Juancri Sánchez",full:"Juancri Sánchez",ntrp:4.5,registered:"4/19"},
+  {id:"R3",name:"Mateo Marietti",full:"Mateo Marietti",ntrp:3.0,registered:"4/19"},
+  {id:"R4",name:"Gon Bader",full:"Gonzalo Bader",ntrp:3.0,registered:"4/19"},
+  {id:"R5",name:"Maximo Razetti",full:"Maximo Razetti",ntrp:3.5,registered:"4/21"},
+  {id:"R6",name:"Morla Álvarez",full:"Rafael Morla Álvarez",ntrp:3.5,registered:"4/21"},
+];
+
+const EMPTY_P=(id,s)=>({id,name:`Slot ${s}`,full:`Open slot ${s}`,ntrp:0,registered:"—",isEmpty:true});
+
+function buildGroups(players){
+  const f=[...players];
+  while(f.length<12){const s=f.length+1;f.push(EMPTY_P(`O${s}`,s));}
+  const sw=[...f];const t=sw[0];sw[0]=sw[8];sw[8]=t;
+  return{
+    A:sw.slice(0,4).map((p,i)=>({...p,groupId:`A${i+1}`})),
+    B:sw.slice(4,8).map((p,i)=>({...p,groupId:`B${i+1}`})),
+    C:sw.slice(8,12).map((p,i)=>({...p,groupId:`C${i+1}`})),
+  };
+}
+
+const MATCHES_DEF=[
+  {group:"A",p1:"A1",p2:"A2",court:1,time:"5:00",n:1},
+  {group:"A",p1:"A3",p2:"A4",court:2,time:"5:00",n:2},
+  {group:"B",p1:"B1",p2:"B2",court:3,time:"5:00",n:3},
+  {group:"B",p1:"B3",p2:"B4",court:4,time:"5:00",n:4},
+  {group:"A",p1:"A1",p2:"A3",court:1,time:"5:20",n:5},
+  {group:"A",p1:"A2",p2:"A4",court:2,time:"5:20",n:6},
+  {group:"B",p1:"B1",p2:"B3",court:3,time:"5:20",n:7},
+  {group:"B",p1:"B2",p2:"B4",court:4,time:"5:20",n:8},
+  {group:"C",p1:"C1",p2:"C2",court:1,time:"5:40",n:9},
+  {group:"C",p1:"C3",p2:"C4",court:2,time:"5:40",n:10},
+  {group:"A",p1:"A1",p2:"A4",court:3,time:"5:40",n:11},
+  {group:"A",p1:"A2",p2:"A3",court:4,time:"5:40",n:12},
+  {group:"C",p1:"C1",p2:"C3",court:1,time:"6:00",n:13},
+  {group:"C",p1:"C2",p2:"C4",court:2,time:"6:00",n:14},
+  {group:"B",p1:"B1",p2:"B4",court:3,time:"6:00",n:15},
+  {group:"B",p1:"B2",p2:"B3",court:4,time:"6:00",n:16},
+  {group:"C",p1:"C1",p2:"C4",court:1,time:"6:20",n:17},
+  {group:"C",p1:"C2",p2:"C3",court:2,time:"6:20",n:18},
+];
+
+/* ─── STORAGE helpers ─── */
+function load(key,def){try{const v=localStorage.getItem(key);return v!=null?JSON.parse(v):def;}catch{return def;}}
+function save(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch{}}
+
+/* ─── LOGIC ─── */
+function calcStd(groups,results){
+  const out={};
+  for(const [g,players] of Object.entries(groups)){
+    out[g]=players.map(p=>{
+      let w=0,l=0,gw=0,gl=0;
+      results.forEach(r=>{
+        if(r.s1==null)return;
+        if(r.p1===p.groupId){gw+=r.s1;gl+=r.s2;r.s1>r.s2?w++:l++;}
+        if(r.p2===p.groupId){gw+=r.s2;gl+=r.s1;r.s2>r.s1?w++:l++;}
+      });
+      return{...p,w,l,gw,gl,pts:w*2,ratio:gl?parseFloat((gw/gl).toFixed(2)):gw};
+    }).sort((a,b)=>b.pts-a.pts||b.ratio-a.ratio);
+  }
+  return out;
+}
+
+function getBR(std){
+  return Object.values(std).map(s=>s[1]).filter(Boolean).sort((a,b)=>b.pts-a.pts||b.ratio-a.ratio)[0];
+}
+
+function winP(a,b){return 1/(1+Math.pow(10,-(a-b)*400/7/400));}
+
+function calcProbs(groups,results){
+  const all=Object.values(groups).flat().filter(p=>!p.isEmpty);
+  const out={};all.forEach(p=>{out[p.id]={champ:0,final:0,semi:0};});
+  const N=3000;
+  for(let i=0;i<N;i++){
+    const simStd={};
+    for(const [g,players] of Object.entries(groups)){
+      const done=results.filter(r=>r.group===g&&r.s1!=null);
+      const todo=results.filter(r=>r.group===g&&r.s1==null);
+      const all2=[...done];
+      todo.forEach(m=>{
+        const p1=players.find(p=>p.groupId===m.p1);
+        const p2=players.find(p=>p.groupId===m.p2);
+        if(!p1||!p2)return;
+        const pr=winP(p1.ntrp||3,p2.ntrp||3);
+        all2.push(Math.random()<pr?{...m,s1:3,s2:Math.floor(Math.random()*3)}:{...m,s1:Math.floor(Math.random()*3),s2:3});
+      });
+      simStd[g]=players.map(p=>{
+        let w=0,gw=0,gl=0;
+        all2.forEach(r=>{
+          if(r.p1===p.groupId){gw+=r.s1;gl+=r.s2;if(r.s1>r.s2)w++;}
+          if(r.p2===p.groupId){gw+=r.s2;gl+=r.s1;if(r.s2>r.s1)w++;}
+        });
+        return{...p,w,pts:w*2,ratio:gl?gw/gl:gw};
+      }).sort((a,b)=>b.pts-a.pts||b.ratio-a.ratio);
+    }
+    const gW=[simStd.A[0],simStd.B[0],simStd.C[0]].filter(Boolean);
+    const br2=["A","B","C"].map(g=>simStd[g][1]).filter(Boolean).sort((a,b)=>b.pts-a.pts||b.ratio-a.ratio)[0];
+    const sf=[...gW,br2].filter(Boolean).slice(0,4);
+    sf.forEach(p=>{if(p&&out[p.id])out[p.id].semi++;});
+    const sm=(a,b)=>{if(!a)return b;if(!b)return a;return Math.random()<winP(a.ntrp||3,b.ntrp||3)?a:b;};
+    const f1=sm(sf[0],sf[3]);const f2=sm(sf[1],sf[2]);
+    if(f1&&out[f1.id])out[f1.id].final++;if(f2&&out[f2.id])out[f2.id].final++;
+    const c=sm(f1,f2);if(c&&out[c.id])out[c.id].champ++;
+  }
+  const res={};
+  for(const [id,p] of Object.entries(out)){
+    res[id]={champ:Math.round(p.champ/N*100),final:Math.round(p.final/N*100),semi:Math.round(p.semi/N*100)};
+  }
+  return res;
+}
+
+function nCol(n){
+  const v=parseFloat(n)||0;
+  if(v>=4.5)return["#8b5cf6","#1e1630"];
+  if(v>=4.0)return["#10b981","#001a0e"];
+  if(v>=3.5)return["#f59e0b","#171200"];
+  if(v>0)return["#60a5fa","#0f1e30"];
+  return["#374151","#141720"];
+}
+const GC={A:["#f59e0b","#171200"],B:["#10b981","#001a0e"],C:["#8b5cf6","#100018"]};
+const cpill=c=>["c1","c2","c3","c4"][c-1]||"c1";
+
+const NAV=[
+  {id:"dashboard",label:"Home",ic:"⌂"},
+  {id:"players",label:"Players",ic:"◎"},
+  {id:"scores",label:"Scores",ic:"◉"},
+  {id:"standings",label:"Table",ic:"≡"},
+  {id:"bracket",label:"Bracket",ic:"⟁"},
+  {id:"odds",label:"Odds",ic:"◈"},
+  {id:"info",label:"Info",ic:"ℹ"},
+];
+
+/* ─── H2H component ─── */
+function H2H({groups}){
+  const [selA,setSelA]=useState(null);
+  const [selB,setSelB]=useState(null);
+  const all=Object.values(groups).flat().filter(p=>!p.isEmpty);
+  const prob=selA&&selB?Math.round(winP(selA.ntrp,selB.ntrp)*100):null;
+  return(<>
+    <div style={{fontSize:11,color:"#4b5563",marginBottom:8}}>Tap two players to compare win probability</div>
+    <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:10}}>
+      {all.map(p=>{
+        const sel=selA?.id===p.id||selB?.id===p.id;
+        return(<button key={p.id} onClick={()=>{
+          if(selA?.id===p.id){setSelA(null);return;}
+          if(selB?.id===p.id){setSelB(null);return;}
+          if(!selA)setSelA(p);else if(!selB)setSelB(p);else{setSelA(p);setSelB(null);}
+        }} style={{padding:"5px 10px",borderRadius:6,border:`1px solid ${sel?"#f59e0b":"#1a1d26"}`,background:sel?"#251d00":"transparent",color:sel?"#f59e0b":"#6b7280",fontSize:11,cursor:"pointer",fontFamily:"DM Sans,sans-serif"}}>{p.name}</button>);
+      })}
+    </div>
+    {selA&&selB&&prob!=null?
+      <div style={{background:"#141720",borderRadius:8,padding:14,textAlign:"center"}}>
+        <div style={{fontSize:11,color:"#4b5563",marginBottom:8}}>{selA.name} vs {selB.name}</div>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+          <div style={{flex:1,textAlign:"center"}}>
+            <div style={{fontFamily:"Bebas Neue",fontSize:32,color:"#f59e0b"}}>{prob}%</div>
+            <div style={{fontSize:10,color:"#4b5563"}}>{selA.name}</div>
+          </div>
+          <div style={{fontSize:11,color:"#374151"}}>vs</div>
+          <div style={{flex:1,textAlign:"center"}}>
+            <div style={{fontFamily:"Bebas Neue",fontSize:32,color:"#8b5cf6"}}>{100-prob}%</div>
+            <div style={{fontSize:10,color:"#4b5563"}}>{selB.name}</div>
+          </div>
+        </div>
+        <div style={{display:"flex",height:7,borderRadius:4,overflow:"hidden"}}>
+          <div style={{width:`${prob}%`,background:"#f59e0b"}}/>
+          <div style={{flex:1,background:"#8b5cf6"}}/>
+        </div>
+        <div style={{fontSize:10,color:"#374151",marginTop:5}}>NTRP {selA.ntrp} vs {selB.ntrp}</div>
+      </div>:
+      <div style={{background:"#141720",borderRadius:8,padding:12,textAlign:"center",color:"#374151",fontSize:11}}>
+        {!selA?"Select two players above":"Select one more player"}
+      </div>
+    }
+  </>);
+}
+
+/* ─── TOAST ─── */
+function Toast({msg,visible}){
+  return <div className={`toast${visible?"":" hide"}`}>{msg}</div>;
+}
+
+/* ─── SCORE ENTRY ROW ─── */
+function ScoreRow({r,idx,p1,p2,onSave,onClear}){
+  const [v1,setV1]=useState(r.s1!=null?String(r.s1):"");
+  const [v2,setV2]=useState(r.s2!=null?String(r.s2):"");
+  const [editing,setEditing]=useState(false);
+  const in1=useRef(null);
+
+  useEffect(()=>{
+    setV1(r.s1!=null?String(r.s1):"");
+    setV2(r.s2!=null?String(r.s2):"");
+    setEditing(false);
+  },[r.s1,r.s2]);
+
+  function startEdit(){setEditing(true);setTimeout(()=>in1.current&&in1.current.focus(),50);}
+
+  function submit(){
+    const s1=parseInt(v1),s2=parseInt(v2);
+    if(isNaN(s1)||isNaN(s2)||s1<0||s2<0)return;
+    onSave(idx,s1,s2);
+    setEditing(false);
+  }
+
+  function handleKey(e){if(e.key==="Enter")submit();if(e.key==="Escape")setEditing(false);}
+
+  const done=r.s1!=null;
+  const cp=cpill(r.court);
+
+  return(
+    <div className={`mi${done?" done":""}`}>
+      <span className="mtime">{r.time}</span>
+      <span className={`cpill ${cp}`}>C{r.court}</span>
+      <span style={{fontSize:9,color:"#374151",minWidth:14,flexShrink:0}}>#{r.n}</span>
+      <span className="mplayers">
+        <span style={{color:done&&r.s1>r.s2?"#e2dfd8":"#9ca3af"}}>{p1?.name||r.p1}</span>
+        <span style={{color:"#374151"}}> v </span>
+        <span style={{color:done&&r.s2>r.s1?"#e2dfd8":"#9ca3af"}}>{p2?.name||r.p2}</span>
+      </span>
+      {!editing&&!done&&(
+        <button className="sbtn ghost" style={{fontSize:10,padding:"4px 9px"}} onClick={startEdit}>Enter</button>
+      )}
+      {!editing&&done&&(
+        <div style={{display:"flex",alignItems:"center",gap:5}}>
+          <span className="mscore" style={{color:r.s1>r.s2?"#4ade80":"#f87171"}} onClick={startEdit}>{r.s1}–{r.s2}</span>
+          <span style={{fontSize:9,color:"#374151",cursor:"pointer"}} onClick={startEdit}>✎</span>
+        </div>
+      )}
+      {editing&&(
+        <div className="score-row">
+          <input ref={in1} className="si" type="number" min="0" max="9" value={v1}
+            onChange={e=>setV1(e.target.value)} onKeyDown={handleKey}
+            style={{width:34}}/>
+          <span style={{color:"#374151",fontFamily:"Bebas Neue",fontSize:16}}>–</span>
+          <input className="si" type="number" min="0" max="9" value={v2}
+            onChange={e=>setV2(e.target.value)} onKeyDown={handleKey}
+            style={{width:34}}/>
+          <button className="sbtn" style={{fontSize:10,padding:"4px 8px"}} onClick={submit}>OK</button>
+          {done&&<button className="sbtn red" style={{fontSize:10,padding:"4px 8px"}} onClick={()=>{onClear(idx);setEditing(false);setV1("");setV2("");}}>✕</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── FINALS MATCH ─── */
+function FinalsRow({label,time,court,match,getName,onSave,onClear}){
+  const [v1,setV1]=useState(match.s1!=null?String(match.s1):"");
+  const [v2,setV2]=useState(match.s2!=null?String(match.s2):"");
+  const [editing,setEditing]=useState(false);
+
+  useEffect(()=>{
+    setV1(match.s1!=null?String(match.s1):"");
+    setV2(match.s2!=null?String(match.s2):"");
+    setEditing(false);
+  },[match.s1,match.s2]);
+
+  const w=match.s1!=null?(match.s1>match.s2?match.p1:match.p2):null;
+
+  return(
+    <div className="bm">
+      <div className="bl">{label} · Court {court} · {time}</div>
+      {[{pid:match.p1,sc:match.s1,isWin:match.p1===w},{pid:match.p2,sc:match.s2,isWin:match.p2===w}].map((sl,si)=>(
+        <div key={si} className={`bp${sl.isWin?" win":""}${!sl.pid?" tbd":""}`}>
+          <span>{sl.pid?getName(sl.pid):"TBD"}</span>
+          {sl.sc!=null&&<span className="bsc">{sl.sc}</span>}
+        </div>
+      ))}
+      <div style={{padding:"8px 13px",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+        {!editing?(
+          <button className={`sbtn${match.s1!=null?" ghost":""}`} style={{fontSize:10}}
+            onClick={()=>setEditing(true)}>
+            {match.s1!=null?"Edit score":"Enter score"}
+          </button>
+        ):(
+          <>
+            <input className="si" type="number" min="0" max="9" value={v1}
+              onChange={e=>setV1(e.target.value)} style={{width:34}}/>
+            <span style={{color:"#374151",fontFamily:"Bebas Neue",fontSize:16}}>–</span>
+            <input className="si" type="number" min="0" max="9" value={v2}
+              onChange={e=>setV2(e.target.value)} style={{width:34}}/>
+            <button className="sbtn" style={{fontSize:10}} onClick={()=>{
+              const s1=parseInt(v1),s2=parseInt(v2);
+              if(!isNaN(s1)&&!isNaN(s2)){onSave(s1,s2);setEditing(false);}
+            }}>Save</button>
+            {match.s1!=null&&<button className="sbtn red" style={{fontSize:10}} onClick={()=>{onClear();setEditing(false);}}>✕ Clear</button>}
+            <button className="sbtn ghost" style={{fontSize:10}} onClick={()=>setEditing(false)}>Cancel</button>
+          </>
+        )}
+      </div>
+      {w&&<div style={{padding:"8px 13px",borderTop:"1px solid #1e4a1e",background:"#0a1a0a",textAlign:"center"}}>
+        <div style={{fontSize:9,color:"#374151",letterSpacing:".08em",textTransform:"uppercase"}}>Winner</div>
+        <div style={{fontFamily:"Bebas Neue",fontSize:18,color:"#4ade80",letterSpacing:2}}>{getName(w)}</div>
+      </div>}
+    </div>
+  );
+}
+
+/* ─── MAIN APP ─── */
+function App(){
+  const groups=buildGroups(PLAYERS_DEF);
+
+  // Payments — persisted
+  const [payments,setPayments]=useState(()=>load("kco_payments",{}));
+  // Results — persisted
+  const [results,setResults]=useState(()=>{
+    const saved=load("kco_results",null);
+    const base=MATCHES_DEF.map(m=>({...m,s1:null,s2:null}));
+    if(saved&&saved.length===base.length){
+      return base.map((m,i)=>({...m,s1:saved[i].s1,s2:saved[i].s2}));
+    }
+    return base;
+  });
+  // Finals — persisted
+  const [finals,setFinals]=useState(()=>load("kco_finals",{
+    sf1:{p1:null,p2:null,s1:null,s2:null},
+    sf2:{p1:null,p2:null,s1:null,s2:null},
+    final:{p1:null,p2:null,s1:null,s2:null},
+  }));
+
+  const [page,setPage]=useState("dashboard");
+  const [gTab,setGTab]=useState("A");
+  const [toast,setToast]=useState({msg:"",visible:false});
+  const toastTimer=useRef(null);
+
+  // Persist on change
+  useEffect(()=>{save("kco_payments",payments);},[payments]);
+  useEffect(()=>{save("kco_results",results.map(r=>({s1:r.s1,s2:r.s2})));},[results]);
+  useEffect(()=>{save("kco_finals",finals);},[finals]);
+
+  function showToast(msg){
+    if(toastTimer.current)clearTimeout(toastTimer.current);
+    setToast({msg,visible:true});
+    toastTimer.current=setTimeout(()=>setToast(t=>({...t,visible:false})),2000);
+  }
+
+  const std=calcStd(groups,results.filter(r=>r.s1!=null));
+  const br=getBR(std);
+  const played=results.filter(r=>r.s1!=null).length;
+  const paidCount=Object.values(payments).filter(Boolean).length;
+  const champ=finals.final.s1!=null?(finals.final.s1>finals.final.s2?finals.final.p1:finals.final.p2):null;
+  const probs=calcProbs(groups,results);
+
+  function getP(gid){for(const ps of Object.values(groups)){const p=ps.find(x=>x.groupId===gid);if(p)return p;}return null;}
+  function getName(gid){const p=getP(gid);return p?p.name:gid||"TBD";}
+
+  function togglePayment(id){
+    setPayments(prev=>{const n={...prev};n[id]=!n[id];return n;});
+    const p=PLAYERS_DEF.find(x=>x.id===id);
+    const wasPaid=payments[id];
+    showToast(wasPaid?`${p?.name} marked as unpaid`:`${p?.name} — payment confirmed ✓`);
+  }
+
+  function saveScore(idx,s1,s2){
+    setResults(prev=>prev.map((r,i)=>i===idx?{...r,s1,s2}:r));
+    showToast(`Match #${results[idx].n} saved: ${s1}–${s2} ✓`);
+  }
+
+  function clearScore(idx){
+    setResults(prev=>prev.map((r,i)=>i===idx?{...r,s1:null,s2:null}:r));
+    showToast("Score cleared");
+  }
+
+  function fillBracket(){
+    setFinals(prev=>({
+      sf1:{...prev.sf1,p1:std.A?.[0]?.groupId||null,p2:br?.groupId||null},
+      sf2:{...prev.sf2,p1:std.B?.[0]?.groupId||null,p2:std.C?.[0]?.groupId||null},
+      final:prev.final,
+    }));
+    showToast("Bracket filled from standings ✓");
+  }
+
+  // Auto-advance final from semis
+  useEffect(()=>{
+    const w1=finals.sf1.s1!=null?(finals.sf1.s1>finals.sf1.s2?finals.sf1.p1:finals.sf1.p2):null;
+    const w2=finals.sf2.s1!=null?(finals.sf2.s1>finals.sf2.s2?finals.sf2.p1:finals.sf2.p2):null;
+    if(w1||w2)setFinals(prev=>({...prev,final:{...prev.final,p1:w1,p2:w2}}));
+  },[finals.sf1.s1,finals.sf1.s2,finals.sf2.s1,finals.sf2.s2]);
+
+  function resetAll(){
+    if(!window.confirm("Reset ALL scores and payments? This cannot be undone."))return;
+    setResults(MATCHES_DEF.map(m=>({...m,s1:null,s2:null})));
+    setPayments({});
+    setFinals({sf1:{p1:null,p2:null,s1:null,s2:null},sf2:{p1:null,p2:null,s1:null,s2:null},final:{p1:null,p2:null,s1:null,s2:null}});
+    showToast("All data reset");
+  }
+
+  return(
+    <div className="wrap">
+      <Toast msg={toast.msg} visible={toast.visible}/>
+
+      {/* TOP BAR */}
+      <div className="topbar">
+        <div>
+          <div className="logo">KEY COLONY <span>OPEN</span></div>
+          <div style={{fontSize:9,color:"#4b5563",marginTop:1}}>Apr 24 · Key Colony Beach · Miami</div>
+        </div>
+        <div className="topbar-meta">5:00 – 8:00 PM<br/>{played}/18 played</div>
+      </div>
+
+      <div className="page-content fade" key={page}>
+
+        {/* ══ DASHBOARD ══ */}
+        {page==="dashboard"&&(<>
+          {champ&&<div className="wb">
+            <div style={{fontSize:9,letterSpacing:".1em",color:"#4b5563",textTransform:"uppercase",marginBottom:2}}>Champion</div>
+            <div className="wn">{getName(champ)}</div>
+            <div style={{fontSize:11,color:"#4ade80",marginTop:2}}>Key Colony Open · Apr 24</div>
+          </div>}
+          <div className="mets">
+            <div className="mc"><div className="ml">Registered</div><div className="mv">{PLAYERS_DEF.length}/12</div><div className="ms">{12-PLAYERS_DEF.length} spots left</div></div>
+            <div className="mc"><div className="ml">Paid</div><div className="mv">{paidCount}</div><div className="ms">${paidCount*40} collected</div></div>
+            <div className="mc"><div className="ml">Played</div><div className="mv">{played}</div><div className="ms">of 18 matches</div></div>
+            <div className="mc"><div className="ml">Format</div><div className="mv" style={{fontSize:14,paddingTop:4}}>1st to 3</div><div className="ms">no-ad · golden pt</div></div>
+          </div>
+          <div className="card">
+            <div className="ch"><span className="ct">Schedule</span></div>
+            {[["5:00","Group stage","4 courts · 18 matches · ~100 min"],["6:40","Groups close","Standings + top 4 posted"],["6:50","Semifinals","Courts 1 & 2 · 1 set to 6"],["7:25","Final","Court 1 · 1 set to 6 · tiebreak"],["8:00","Ceremony","Drinks + finger food"]].map(([t,e,n])=>(
+              <div key={t} style={{display:"flex",gap:10,padding:"8px 13px",borderBottom:"1px solid #0f1118",alignItems:"flex-start"}}>
+                <span style={{fontFamily:"Bebas Neue",fontSize:13,color:"#f59e0b",minWidth:40,flexShrink:0}}>{t} PM</span>
+                <div><div style={{fontSize:12,color:"#e2dfd8",fontWeight:500}}>{e}</div><div style={{fontSize:11,color:"#374151"}}>{n}</div></div>
+              </div>
+            ))}
+          </div>
+          {["A","B","C"].map(g=>{
+            const[ac,hbg]=GC[g];
+            return(<div key={g} className="gc">
+              <div className="gh" style={{background:hbg}}>
+                <span className="gltr" style={{color:ac}}>Group {g}</span>
+                <span style={{fontSize:10,color:"#4b5563"}}>{results.filter(r=>r.group===g&&r.s1!=null).length}/6 played</span>
+              </div>
+              <table className="st">
+                <thead><tr><th>#</th><th>Player</th><th>W</th><th>L</th><th>Pts</th></tr></thead>
+                <tbody>{(std[g]||groups[g]).map((p,i)=>(
+                  <tr key={p.id||p.groupId} className={i===0?"q":"d"}>
+                    <td><span className={`rn${i===0?" t":""}`}>{i+1}</span></td>
+                    <td style={{maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      {i===0&&<span className="qdot"/>}{i===1&&p.id===br?.id&&<span className="rdot"/>}{p.name}
+                    </td>
+                    <td>{p.w??0}</td><td>{p.l??0}</td><td style={{fontWeight:500}}>{p.pts??0}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>);
+          })}
+        </>)}
+
+        {/* ══ PLAYERS ══ */}
+        {page==="players"&&(<>
+          <div className="ptitle">Players</div>
+          <div className="psub"><span className="ld pulse"/> {PLAYERS_DEF.length} registered · {paidCount} paid · ${paidCount*40} collected</div>
+          <div className="mets">
+            <div className="mc"><div className="ml">Registered</div><div className="mv">{PLAYERS_DEF.length}</div></div>
+            <div className="mc"><div className="ml">Confirmed paid</div><div className="mv">{paidCount}</div></div>
+            <div className="mc"><div className="ml">Revenue</div><div className="mv">${paidCount*40}</div></div>
+            <div className="mc"><div className="ml">Pending</div><div className="mv">{PLAYERS_DEF.length-paidCount}</div></div>
+          </div>
+          <div className="card">
+            <div className="ch">
+              <span className="ct">Tap to toggle payment status</span>
+              <a href="https://docs.google.com/spreadsheets/d/1SfcNA_a_BeM7A-VWnHSp2mC7f0pazcjntF92K2pqML4" target="_blank" style={{fontSize:10,color:"#60a5fa",textDecoration:"none"}}>Sheet ↗</a>
+            </div>
+            {PLAYERS_DEF.map((p,i)=>{
+              const[ac,bg]=nCol(p.ntrp);
+              const ini=p.name.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase();
+              const grp=Object.entries(groups).find(([,ps])=>ps.some(x=>x.id===p.id));
+              const isPaid=!!payments[p.id];
+              return(<div key={p.id} className="rr">
+                <div className="av" style={{background:bg,color:ac}}>{ini}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,color:"#e2dfd8",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.full}</div>
+                  <div style={{display:"flex",gap:5,alignItems:"center",marginTop:2,flexWrap:"wrap"}}>
+                    <span className="nb">NTRP {p.ntrp}</span>
+                    {grp&&<span className={`gpill g${grp[0]}`}>Grp {grp[0]}</span>}
+                    
+                  </div>
+                </div>
+                <button className={`pay-btn ${isPaid?"paid":"unpaid"}`} onClick={()=>togglePayment(p.id)}>
+                  <div className="pay-dot" style={{background:isPaid?"#4ade80":"#f59e0b"}}/>
+                  {isPaid?"Paid ✓":"Pending"}
+                </button>
+              </div>);
+            })}
+          </div>
+          <div style={{padding:"4px 0 12px",textAlign:"center"}}>
+            <button className="reset-link" onClick={()=>{if(window.confirm("Reset all payment statuses?"))setPayments({});}}>Reset all payments</button>
+          </div>
+        </>)}
+
+        {/* ══ SCORES ══ */}
+        {page==="scores"&&(<>
+          <div className="ptitle">Scores</div>
+          <div className="psub">{played}/18 played · tap a score to edit · red ✕ to clear</div>
+
+          {/* Progress bar */}
+          <div style={{background:"#141720",borderRadius:8,padding:"10px 13px",marginBottom:10}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+              <span style={{fontSize:11,color:"#4b5563"}}>Group stage progress</span>
+              <span style={{fontSize:11,color:"#e2dfd8",fontWeight:500}}>{played}/18</span>
+            </div>
+            <div className="pbar-w" style={{height:10}}>
+              <div className="pbar" style={{width:`${Math.round(played/18*100)}%`,background:"#10b981"}}/>
+            </div>
+          </div>
+
+          {["A","B","C"].map(g=>{
+            const[ac]=GC[g];
+            const gPlayed=results.filter(r=>r.group===g&&r.s1!=null).length;
+            return(<div key={g} style={{marginBottom:14}}>
+              <div className="div">
+                <div className="dl"/>
+                <div className="dt" style={{color:ac}}>Group {g} · {gPlayed}/6</div>
+                <div className="dl"/>
+              </div>
+              {results.filter(r=>r.group===g).map(r=>{
+                const idx=results.indexOf(r);
+                const p1=getP(r.p1);const p2=getP(r.p2);
+                return(<ScoreRow key={idx} r={r} idx={idx} p1={p1} p2={p2}
+                  onSave={saveScore} onClear={clearScore}/>);
+              })}
+            </div>);
+          })}
+
+          {/* Finals scores */}
+          <div className="div"><div className="dl"/><div className="dt" style={{color:"#4ade80"}}>Finals</div><div className="dl"/></div>
+          <div style={{display:"flex",gap:7,marginBottom:12,flexWrap:"wrap"}}>
+            <button className="sbtn grn" style={{fontSize:11}} onClick={fillBracket}>Auto-fill bracket from standings</button>
+          </div>
+          <FinalsRow label="Semifinal 1" time="6:50 PM" court={1}
+            match={finals.sf1} getName={getName}
+            onSave={(s1,s2)=>{setFinals(p=>({...p,sf1:{...p.sf1,s1,s2}}));showToast("SF1 score saved ✓");}}
+            onClear={()=>{setFinals(p=>({...p,sf1:{...p.sf1,s1:null,s2:null}}));showToast("SF1 cleared");}}/>
+          <FinalsRow label="Semifinal 2" time="6:50 PM" court={2}
+            match={finals.sf2} getName={getName}
+            onSave={(s1,s2)=>{setFinals(p=>({...p,sf2:{...p.sf2,s1,s2}}));showToast("SF2 score saved ✓");}}
+            onClear={()=>{setFinals(p=>({...p,sf2:{...p.sf2,s1:null,s2:null}}));showToast("SF2 cleared");}}/>
+          <FinalsRow label="Final" time="7:25 PM" court={1}
+            match={finals.final} getName={getName}
+            onSave={(s1,s2)=>{setFinals(p=>({...p,final:{...p.final,s1,s2}}));showToast("Final score saved ✓");}}
+            onClear={()=>{setFinals(p=>({...p,final:{...p.final,s1:null,s2:null}}));showToast("Final cleared");}}/>
+
+          <div style={{padding:"8px 0 4px",textAlign:"center"}}>
+            <button className="reset-link" onClick={()=>{if(window.confirm("Clear ALL match scores?")){{setResults(MATCHES_DEF.map(m=>({...m,s1:null,s2:null})));setFinals({sf1:{p1:null,p2:null,s1:null,s2:null},sf2:{p1:null,p2:null,s1:null,s2:null},final:{p1:null,p2:null,s1:null,s2:null}});showToast("All scores cleared");}}}}>Clear all scores</button>
+          </div>
+        </>)}
+
+        {/* ══ STANDINGS ══ */}
+        {page==="standings"&&(<>
+          <div className="ptitle">Standings</div>
+          <div className="psub">Green = advances · Gold dot = best runner-up wildcard</div>
+          <div className="tb">
+            {["A","B","C"].map(g=><button key={g} className={`tbb${gTab===g?" on":""}`} onClick={()=>setGTab(g)}>Group {g}</button>)}
+          </div>
+          <div className="gc">
+            <div className="gh" style={{background:GC[gTab][1]}}>
+              <span className="gltr" style={{color:GC[gTab][0]}}>Group {gTab}</span>
+              <span style={{fontSize:10,color:"#4b5563"}}>{results.filter(r=>r.group===gTab&&r.s1!=null).length}/6 played</span>
+            </div>
+            <div style={{overflowX:"auto"}}>
+              <table className="st" style={{minWidth:320}}>
+                <thead><tr><th>#</th><th>Player</th><th>W</th><th>L</th><th>GW</th><th>GL</th><th>Pts</th></tr></thead>
+                <tbody>{(std[gTab]||groups[gTab]).map((p,i)=>(
+                  <tr key={p.id||p.groupId} className={i===0?"q":"d"}>
+                    <td><span className={`rn${i===0?" t":""}`}>{i+1}</span></td>
+                    <td>{i===0&&<span className="qdot"/>}{i===1&&p.id===br?.id&&<span className="rdot"/>}{p.name}</td>
+                    <td style={{color:"#4ade80"}}>{p.w??0}</td>
+                    <td style={{color:"#f87171"}}>{p.l??0}</td>
+                    <td>{p.gw??0}</td><td>{p.gl??0}</td>
+                    <td style={{fontFamily:"Bebas Neue",fontSize:16}}>{p.pts??0}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          </div>
+          <div className="div"><div className="dl"/><div className="dt">Finalists (top 4)</div><div className="dl"/></div>
+          {["A","B","C"].map(g=>{const w=std[g]?.[0];return w?(<div key={g} className="mi" style={{marginBottom:4}}>
+            <span className={`gpill g${g}`}>Grp {g}</span>
+            <span style={{fontSize:12,color:"#e2dfd8",flex:1}}>{w.name}</span>
+            <span style={{fontSize:10,color:"#4ade80"}}>Winner ✓</span>
+          </div>):null;})}
+          {br&&<div className="mi">
+            <span style={{fontSize:9,padding:"2px 5px",borderRadius:4,background:"#1a1000",color:"#f59e0b",fontWeight:500,flexShrink:0}}>Best 2nd</span>
+            <span style={{fontSize:12,color:"#f59e0b",flex:1}}>{br.name}</span>
+            <span style={{fontSize:10,color:"#f59e0b"}}>Wildcard</span>
+          </div>}
+        </>)}
+
+        {/* ══ BRACKET ══ */}
+        {page==="bracket"&&(<>
+          <div className="ptitle">Bracket</div>
+          <div className="psub">Semis 6:50 PM · Final 7:25 PM · go to Scores tab to enter results</div>
+          {["sf1","sf2"].map((key,ki)=>{
+            const m=finals[key];const w=m.s1!=null?(m.s1>m.s2?m.p1:m.p2):null;
+            return(<div key={key} className="bm">
+              <div className="bl">Semifinal {ki+1} · Court {ki+1} · 6:50 PM</div>
+              {[{pid:m.p1,sc:m.s1,isWin:m.p1===w},{pid:m.p2,sc:m.s2,isWin:m.p2===w}].map((sl,si)=>(
+                <div key={si} className={`bp${sl.isWin?" win":""}${!sl.pid?" tbd":""}`}>
+                  <span>{sl.pid?getName(sl.pid):"TBD"}</span>
+                  {sl.sc!=null&&<span className="bsc">{sl.sc}</span>}
+                </div>
+              ))}
+            </div>);
+          })}
+          {(()=>{
+            const m=finals.final;const w=m.s1!=null?(m.s1>m.s2?m.p1:m.p2):null;
+            return(<div className="bm" style={{border:"1px solid #1e4a1e"}}>
+              <div className="bl" style={{color:"#4ade80"}}>FINAL · Court 1 · 7:25 PM</div>
+              {[{pid:m.p1,sc:m.s1,isWin:m.p1===w},{pid:m.p2,sc:m.s2,isWin:m.p2===w}].map((sl,si)=>(
+                <div key={si} className={`bp${sl.isWin?" win":""}${!sl.pid?" tbd":""}`}>
+                  <span>{sl.pid?getName(sl.pid):"TBD"}</span>
+                  {sl.sc!=null&&<span className="bsc">{sl.sc}</span>}
+                </div>
+              ))}
+              {w&&<div style={{padding:"8px 13px",borderTop:"1px solid #1e4a1e",background:"#0a1a0a",textAlign:"center"}}>
+                <div style={{fontSize:9,color:"#374151",letterSpacing:".08em",textTransform:"uppercase"}}>Champion</div>
+                <div style={{fontFamily:"Bebas Neue",fontSize:20,color:"#4ade80",letterSpacing:2}}>{getName(w)}</div>
+              </div>}
+            </div>);
+          })()}
+          <div style={{marginTop:10,padding:"8px 0",textAlign:"center"}}>
+            <button className="sbtn grn" style={{fontSize:11}} onClick={fillBracket}>Auto-fill from standings</button>
+          </div>
+        </>)}
+
+        {/* ══ ODDS ══ */}
+        {page==="odds"&&(<>
+          <div className="ptitle">Win Odds</div>
+          <div className="psub">Monte Carlo · 3,000 simulations · updates with scores</div>
+          <div className="card" style={{marginBottom:10}}>
+            <div className="ch"><span className="ct">Championship probability</span></div>
+            {Object.values(groups).flat().filter(p=>!p.isEmpty)
+              .sort((a,b)=>(probs[b.id]?.champ||0)-(probs[a.id]?.champ||0))
+              .map((p,i)=>{
+                const pr=probs[p.id]||{champ:0,final:0,semi:0};
+                const[ac,bg]=nCol(p.ntrp);
+                const ini=p.name.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase();
+                const grp=Object.entries(groups).find(([,ps])=>ps.some(x=>x.id===p.id));
+                const bc=i===0?"#f59e0b":i===1?"#9ca3af":i===2?"#b87333":"#374151";
+                return(<div key={p.id} style={{padding:"10px 13px",borderBottom:"1px solid #0f1118"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                    <div className="av" style={{background:bg,color:ac,width:30,height:30,fontSize:11,flexShrink:0}}>{ini}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12,color:"#e2dfd8",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
+                      <div style={{display:"flex",gap:5,marginTop:2}}>
+                        <span className="nb">NTRP {p.ntrp}</span>
+                        {grp&&<span className={`gpill g${grp[0]}`}>Grp {grp[0]}</span>}
+                      </div>
+                    </div>
+                    <div style={{textAlign:"right",flexShrink:0}}>
+                      <div style={{fontFamily:"Bebas Neue",fontSize:24,color:bc,lineHeight:1}}>{pr.champ}%</div>
+                      <div style={{fontSize:9,color:"#374151"}}>to win</div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                    <div className="pbar-w"><div className="pbar" style={{width:`${pr.champ}%`,background:bc}}/></div>
+                  </div>
+                  <div style={{display:"flex",gap:12}}>
+                    <span style={{fontSize:10,color:"#4b5563"}}>Semis: <span style={{color:"#9ca3af"}}>{pr.semi}%</span></span>
+                    <span style={{fontSize:10,color:"#4b5563"}}>Final: <span style={{color:"#9ca3af"}}>{pr.final}%</span></span>
+                  </div>
+                </div>);
+              })}
+          </div>
+          <div className="card">
+            <div className="ch"><span className="ct">Head-to-head</span></div>
+            <div style={{padding:"10px 13px"}}><H2H groups={groups}/></div>
+          </div>
+        </>)}
+
+        {/* ══ INFO ══ */}
+        {page==="info"&&(<>
+          <div className="ptitle">Info</div>
+          <div className="psub">Key Colony Open · April 24, 2026</div>
+          <div className="card" style={{marginBottom:10}}>
+            <div className="ch"><span className="ct">Event</span></div>
+            <div className="cb">
+              {[["Date","Fri Apr 24, 2026"],["Time","5:00 – 8:00 PM"],["Location","Key Colony Beach, FL"],["Courts","4 (groups) → 2 (finals)"],["Entry","$40 via Zelle"],["Prizes","Amazon gift cards 1st & 2nd"],["Extras","Drinks + finger food"]].map(([l,v])=>(
+                <div key={l} className="ir"><span className="il">{l}</span><span className="iv">{v}</span></div>
+              ))}
+            </div>
+          </div>
+          <div className="card" style={{marginBottom:10}}>
+            <div className="ch"><span className="ct">Format</span></div>
+            <div className="cb">
+              {[["Group matches","First to 3 games wins"],["Scoring","No-ad · golden point on deuce"],["Match duration","15–20 min each"],["Semis & Final","1 set to 6 · tiebreak at 6-6"],["Advances","3 group winners + best 2nd"],["Tiebreaker","Pts → H2H → Game ratio → coin"]].map(([l,v])=>(
+                <div key={l} className="ir"><span className="il">{l}</span><span className="iv" style={{maxWidth:"55%"}}>{v}</span></div>
+              ))}
+            </div>
+          </div>
+          <div className="card" style={{marginBottom:10}}>
+            <div className="ch"><span className="ct">Court plan</span></div>
+            <div className="cb">
+              <div style={{fontSize:11,color:"#e2dfd8",fontWeight:500,marginBottom:6}}>Group stage · 5:00–6:40 PM</div>
+              {[["Courts 1 & 2","Groups A & C"],["Courts 3 & 4","Group B"]].map(([l,v])=>(
+                <div key={l} className="ir"><span className="il">{l}</span><span className="iv">{v}</span></div>
+              ))}
+              <div style={{fontSize:11,color:"#e2dfd8",fontWeight:500,margin:"10px 0 6px"}}>Finals · 6:50–8:00 PM</div>
+              {[["Court 1","Semifinal 1 → Final"],["Court 2","Semifinal 2"],["Courts 3 & 4","Released"]].map(([l,v])=>(
+                <div key={l} className="ir"><span className="il">{l}</span><span className="iv">{v}</span></div>
+              ))}
+            </div>
+          </div>
+          <div style={{padding:"4px 0 12px",textAlign:"center"}}>
+            <button className="reset-link" onClick={resetAll}>Reset all tournament data</button>
+          </div>
+        </>)}
+
+      </div>
+
+      {/* BOTTOM NAV */}
+      <div className="bnav">
+        {NAV.map(p=>(
+          <button key={p.id} className={`bn${page===p.id?" on":""}`} onClick={()=>setPage(p.id)}>
+            <span className="bn-ic">{p.ic}</span>
+            <span>{p.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
