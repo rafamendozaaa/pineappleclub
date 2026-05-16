@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<title>Parking Hub 🅿️</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body,#root{min-height:100vh;}
+body{background:#080a0e;color:#e2dfd8;font-family:'DM Sans',sans-serif;font-size:14px;-webkit-tap-highlight-color:transparent;}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-thumb{background:#333;border-radius:2px;}
+.wrap{padding:0 0 70px 0;}
+.topbar{background:#0b0d12;border-bottom:1px solid #1a1d26;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:#fff;line-height:1;}
+.logo span{color:#f59e0b;}
+.topbar-meta{font-size:10px;color:#4b5563;text-align:right;line-height:1.5;}
+.page-content{padding:12px 12px 10px;max-width:600px;margin:0 auto;}
+.bnav{position:fixed;bottom:0;left:0;right:0;background:#0b0d12;border-top:1px solid #1a1d26;display:flex;z-index:999;height:62px;padding-bottom:env(safe-area-inset-bottom,0);max-width:600px;margin:0 auto;}
+.bn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:transparent;color:#4b5563;font-size:9px;font-family:'DM Sans',sans-serif;cursor:pointer;gap:3px;padding:6px 2px;transition:color .15s;}
+.bn.on{color:#f59e0b;}
+.bn-ic{font-size:17px;line-height:1;}
+.card{background:#0b0d12;border:1px solid #1a1d26;border-radius:12px;overflow:hidden;margin-bottom:10px;}
+.ch{padding:10px 13px;border-bottom:1px solid #1a1d26;display:flex;align-items:center;justify-content:space-between;}
+.ct{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#4b5563;}
+.cb{padding:12px 13px;}
+.ptitle{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;margin-bottom:2px;}
+.psub{font-size:11px;color:#4b5563;margin-bottom:12px;}
+.div{display:flex;align-items:center;gap:8px;margin:14px 0 8px;}
+.dl{flex:1;height:1px;background:#1a1d26;}
+.dt{font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:#374151;white-space:nowrap;}
+
+/* Search bar */
+.search{display:flex;align-items:center;gap:8px;background:#0b0d12;border:1px solid #1a1d26;border-radius:10px;padding:9px 12px;margin-bottom:10px;}
+.search input{flex:1;background:transparent;border:none;outline:none;color:#e2dfd8;font-family:'DM Sans',sans-serif;font-size:13px;}
+.search input::placeholder{color:#4b5563;}
+.search-ic{font-size:14px;}
+
+/* Lot card */
+.lot{display:flex;gap:10px;padding:12px 13px;border-bottom:1px solid #0f1118;cursor:pointer;transition:background .12s;}
+.lot:last-child{border-bottom:none;}
+.lot:active{background:#0d0f14;}
+.lot-emoji{width:42px;height:42px;border-radius:10px;background:#141720;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.lot-mid{flex:1;min-width:0;}
+.lot-name{font-size:13px;color:#e2dfd8;font-weight:500;margin-bottom:2px;}
+.lot-addr{font-size:11px;color:#4b5563;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px;}
+.lot-meta{display:flex;gap:8px;align-items:center;}
+.lot-pill{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:500;letter-spacing:.04em;}
+.pl-open{background:#0f2a0f;color:#4ade80;}
+.pl-tight{background:#251d00;color:#f59e0b;}
+.pl-full{background:#2a0a0a;color:#f87171;}
+.lot-right{text-align:right;flex-shrink:0;}
+.lot-rate{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#f0ede8;line-height:1;}
+.lot-unit{font-size:9px;color:#4b5563;letter-spacing:.06em;}
+.lot-dist{font-size:11px;color:#6b7280;margin-top:4px;}
+
+/* Metric cards */
+.mets{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.mc{background:#0b0d12;border:1px solid #1a1d26;border-radius:10px;padding:11px 13px;}
+.ml{font-size:10px;color:#4b5563;margin-bottom:2px;letter-spacing:.06em;text-transform:uppercase;}
+.mv{font-family:'Bebas Neue',sans-serif;font-size:26px;color:#f0ede8;line-height:1;}
+.ms{font-size:10px;color:#374151;margin-top:2px;}
+
+/* Active session big card */
+.active-card{background:linear-gradient(180deg,#0f2a1a 0%,#0a1a10 100%);border:1px solid #1e4a2e;border-radius:14px;padding:16px;margin-bottom:12px;text-align:center;}
+.active-status{font-size:10px;letter-spacing:.12em;color:#4ade80;text-transform:uppercase;margin-bottom:6px;}
+.active-status .dot{width:7px;height:7px;border-radius:50%;background:#4ade80;display:inline-block;margin-right:5px;vertical-align:middle;animation:pp 1.6s infinite;}
+.active-timer{font-family:'Bebas Neue',sans-serif;font-size:48px;color:#4ade80;letter-spacing:3px;line-height:1;margin-bottom:8px;}
+.active-cost{font-size:13px;color:#9ca3af;margin-bottom:14px;}
+.active-cost b{color:#f59e0b;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;font-weight:normal;}
+.active-info{display:flex;justify-content:space-between;padding-top:12px;border-top:1px solid #1e4a2e;font-size:11px;}
+.active-info div{text-align:left;}
+.active-info .il{color:#4b5563;font-size:9px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;}
+.active-info .iv{color:#e2dfd8;font-weight:500;font-size:12px;}
+
+/* Spot grid */
+.spot-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin:10px 0;}
+.spot{aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:transform .1s;}
+.spot.free{background:#0f2a0f;color:#4ade80;border-color:#1e4a1e;}
+.spot.free:active{transform:scale(.9);}
+.spot.taken{background:#1a0e0e;color:#4b5563;}
+.spot.sel{background:#f59e0b;color:#08090c;border-color:#f59e0b;box-shadow:0 0 0 2px #251d00;}
+.spot.ev{background:#001a2a;color:#38bdf8;border-color:#003a4a;}
+.spot.dis{background:#1a1d26;color:#6b7280;}
+.spot-legend{display:flex;gap:12px;font-size:10px;color:#4b5563;justify-content:center;margin-top:6px;flex-wrap:wrap;}
+.sl-dot{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle;}
+
+/* Buttons */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:#f59e0b;color:#08090c;border:none;border-radius:12px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;text-decoration:none;}
+.btn:active{background:#d97706;}
+.btn:disabled{background:#2a2d36;color:#4b5563;cursor:not-allowed;}
+.btn.danger{background:#7f1d1d;color:#fca5a5;}
+.btn.danger:active{background:#5c1414;}
+.btn.ghost{background:transparent;border:1px solid #2a2d36;color:#9ca3af;font-size:14px;letter-spacing:1px;padding:11px;}
+.btn-row{display:flex;gap:8px;}
+.btn-row .btn{flex:1;}
+
+/* History row */
+.hr{display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid #0f1118;}
+.hr:last-child{border-bottom:none;}
+.hr-ic{width:34px;height:34px;border-radius:8px;background:#141720;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.hr-mid{flex:1;min-width:0;}
+.hr-where{font-size:12px;color:#e2dfd8;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.hr-when{font-size:10px;color:#4b5563;}
+.hr-right{text-align:right;flex-shrink:0;}
+.hr-amt{font-family:'Bebas Neue',sans-serif;font-size:17px;color:#f0ede8;line-height:1;}
+.hr-dur{font-size:10px;color:#4b5563;}
+
+/* Profile */
+.prow{display:flex;justify-content:space-between;align-items:center;padding:12px 13px;border-bottom:1px solid #0f1118;}
+.prow:last-child{border-bottom:none;}
+.pl-l{font-size:12px;color:#9ca3af;display:flex;align-items:center;gap:8px;}
+.pl-l .ic{font-size:14px;}
+.pl-v{font-size:12px;color:#e2dfd8;font-weight:500;}
+.pl-v .ed{color:#f59e0b;font-size:10px;margin-left:6px;cursor:pointer;text-decoration:underline;}
+
+/* Modal */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:flex-end;justify-content:center;animation:fa .2s ease;}
+@keyframes fa{from{opacity:0}to{opacity:1}}
+.sheet{background:#0b0d12;border-top:1px solid #1a1d26;border-radius:16px 16px 0 0;width:100%;max-width:600px;padding:14px;max-height:88vh;overflow-y:auto;animation:su .25s ease;}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.sheet-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1.5px;color:#fff;}
+.sheet-close{background:transparent;border:none;color:#6b7280;font-size:22px;cursor:pointer;padding:0;line-height:1;}
+
+/* Empty state */
+.empty{text-align:center;padding:40px 14px;color:#4b5563;}
+.empty-ic{font-size:42px;margin-bottom:8px;opacity:.4;}
+.empty-msg{font-size:13px;margin-bottom:4px;color:#6b7280;}
+.empty-sub{font-size:11px;color:#374151;}
+
+/* Misc */
+@keyframes pp{0%,100%{opacity:1}50%{opacity:.3}}
+.pulse{animation:pp 1.8s infinite;}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fi .18s ease both;}
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#10b981;color:#001a0e;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:500;z-index:9999;pointer-events:none;transition:opacity .3s;}
+.toast.hide{opacity:0;}
+.toast.warn{background:#f59e0b;color:#08090c;}
+
+/* Detail header */
+.detail-hero{padding:14px;border-radius:12px;background:linear-gradient(180deg,#141720 0%,#0b0d12 100%);border:1px solid #1a1d26;margin-bottom:10px;}
+.detail-name{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1.5px;color:#fff;margin-bottom:2px;}
+.detail-addr{font-size:11px;color:#6b7280;margin-bottom:10px;}
+.detail-stats{display:flex;gap:12px;font-size:11px;}
+.detail-stats div{flex:1;}
+.detail-stats .l{color:#4b5563;font-size:9px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px;}
+.detail-stats .v{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#f0ede8;letter-spacing:.5px;}
+
+/* Vehicle picker */
+.vrow{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#0d0f14;border:1px solid #1a1d26;border-radius:10px;margin-bottom:8px;cursor:pointer;}
+.vrow.on{border-color:#f59e0b;background:#1a1000;}
+.vrow-ic{font-size:18px;}
+.vrow-mid{flex:1;}
+.vrow-plate{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1.5px;color:#e2dfd8;}
+.vrow-make{font-size:10px;color:#6b7280;}
+.vrow-chk{color:#f59e0b;}
+
+/* Form inputs */
+.input{background:#141720;border:1px solid #2a2d36;border-radius:8px;color:#e2dfd8;font-family:'DM Sans',sans-serif;font-size:13px;padding:10px 12px;width:100%;outline:none;}
+.input:focus{border-color:#f59e0b;}
+.lbl{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#4b5563;margin-bottom:4px;display:block;margin-top:8px;}
+
+/* Section title */
+.sect{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#6b7280;margin:14px 0 6px;font-weight:500;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useMemo}=React;
+
+const LOTS=[
+  {id:"L1", name:"Centro Plaza", addr:"Av. Corrientes 1200", emoji:"🏙️", rate:4.50, total:48, taken:32, dist:0.2, ev:true,  hours:"24h"},
+  {id:"L2", name:"Palermo Soho",  addr:"Honduras 5400",      emoji:"🌳", rate:3.80, total:64, taken:44, dist:0.6, ev:true,  hours:"24h"},
+  {id:"L3", name:"Recoleta Park", addr:"Junín 1900",         emoji:"🏛️", rate:5.20, total:40, taken:39, dist:1.1, ev:false, hours:"6‑24"},
+  {id:"L4", name:"Puerto Madero", addr:"Olga Cossettini 850",emoji:"⚓",  rate:6.00, total:80, taken:38, dist:1.4, ev:true,  hours:"24h"},
+  {id:"L5", name:"Belgrano Mall", addr:"Cabildo 3200",       emoji:"🛍️", rate:3.20, total:120,taken:80, dist:2.0, ev:false, hours:"8‑23"},
+  {id:"L6", name:"Caballito Sub", addr:"Rivadavia 5100",     emoji:"🚉", rate:2.80, total:32, taken:32, dist:2.7, ev:false, hours:"6‑23"},
+];
+
+const SPOT_TYPES=["free","taken","ev","dis"];
+
+function load(k,d){try{const v=localStorage.getItem(k);return v!=null?JSON.parse(v):d;}catch{return d;}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
+
+function fmtTimer(ms){
+  const s=Math.floor(ms/1000);
+  const h=Math.floor(s/3600);
+  const m=Math.floor((s%3600)/60);
+  const ss=s%60;
+  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`;
+}
+function fmtMoney(v){return `$${v.toFixed(2)}`;}
+function fmtDuration(ms){
+  const m=Math.round(ms/60000);
+  if(m<60) return `${m}m`;
+  const h=Math.floor(m/60), rm=m%60;
+  return rm?`${h}h ${rm}m`:`${h}h`;
+}
+function fmtDate(ts){
+  const d=new Date(ts);
+  return d.toLocaleDateString(undefined,{month:"short",day:"numeric"})+" · "+d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
+}
+
+// Stable pseudo-random spot layout per lot
+function spotLayoutForLot(lot){
+  const rows=4, cols=8, total=rows*cols;
+  const seed=parseInt(lot.id.slice(1))*31+7;
+  const rng=(i)=>((Math.sin(seed*i+i*i)+1)/2);
+  const targetTaken=Math.round((lot.taken/lot.total)*total);
+  const spots=[];
+  for(let i=0;i<total;i++){
+    let t="free";
+    if(rng(i+1)<0.10) t=lot.ev?"ev":"dis";
+    spots.push({i,type:t,label:`${String.fromCharCode(65+Math.floor(i/cols))}${(i%cols)+1}`});
+  }
+  let taken=0;
+  for(let i=0;i<total && taken<targetTaken;i++){
+    if(spots[i].type==="free" && rng(i+99)<0.7){spots[i].type="taken";taken++;}
+  }
+  for(let i=0;taken<targetTaken && i<total;i++){
+    if(spots[i].type==="free"){spots[i].type="taken";taken++;}
+  }
+  return spots;
+}
+
+function App(){
+  const [tab,setTab]=useState(()=>load("ph_tab","find"));
+  const [active,setActive]=useState(()=>load("ph_active",null));
+  const [history,setHistory]=useState(()=>load("ph_history",[]));
+  const [vehicles,setVehicles]=useState(()=>load("ph_vehicles",[
+    {id:"V1",plate:"AC 234 LR",make:"Toyota Corolla",color:"⚫",selected:true},
+    {id:"V2",plate:"BX 891 ZQ",make:"VW Golf",color:"⚪",selected:false},
+  ]));
+  const [balance,setBalance]=useState(()=>load("ph_balance",125.40));
+  const [toast,setToast]=useState(null);
+  const [now,setNow]=useState(Date.now());
+  const [openLot,setOpenLot]=useState(null);
+  const [search,setSearch]=useState("");
+  const [topUpOpen,setTopUpOpen]=useState(false);
+
+  useEffect(()=>save("ph_tab",tab),[tab]);
+  useEffect(()=>save("ph_active",active),[active]);
+  useEffect(()=>save("ph_history",history),[history]);
+  useEffect(()=>save("ph_vehicles",vehicles),[vehicles]);
+  useEffect(()=>save("ph_balance",balance),[balance]);
+
+  // Tick the timer
+  useEffect(()=>{
+    if(!active) return;
+    const id=setInterval(()=>setNow(Date.now()),1000);
+    return ()=>clearInterval(id);
+  },[active]);
+
+  const showToast=(msg,warn=false)=>{
+    setToast({msg,warn});
+    setTimeout(()=>setToast(null),1800);
+  };
+
+  const startSession=(lot,spot)=>{
+    const v=vehicles.find(x=>x.selected)||vehicles[0];
+    if(!v){showToast("Add a vehicle first",true);return;}
+    const sess={
+      id:"S"+Date.now(),
+      lotId:lot.id,
+      lotName:lot.name,
+      lotAddr:lot.addr,
+      emoji:lot.emoji,
+      spot:spot.label,
+      rate:lot.rate,
+      vehicle:v.plate,
+      vehicleMake:v.make,
+      startedAt:Date.now(),
+    };
+    setActive(sess);
+    setOpenLot(null);
+    setTab("session");
+    showToast(`Spot ${spot.label} reserved`);
+  };
+
+  const endSession=()=>{
+    if(!active) return;
+    const elapsed=Date.now()-active.startedAt;
+    const cost=Math.max(1, (elapsed/3600000)*active.rate);
+    if(cost>balance){showToast("Insufficient balance — top up first",true);return;}
+    const rec={...active,endedAt:Date.now(),durationMs:elapsed,cost};
+    setHistory([rec,...history].slice(0,50));
+    setBalance(b=>Math.max(0,b-cost));
+    setActive(null);
+    setTab("history");
+    showToast(`Session ended · ${fmtMoney(cost)} charged`);
+  };
+
+  const selectVehicle=(id)=>{
+    setVehicles(vehicles.map(v=>({...v,selected:v.id===id})));
+    showToast("Vehicle updated");
+  };
+
+  const addVehicle=(plate,make)=>{
+    const v={id:"V"+Date.now(),plate:plate.toUpperCase(),make,color:"⚫",selected:false};
+    setVehicles([...vehicles,v]);
+    showToast("Vehicle added");
+  };
+
+  const removeVehicle=(id)=>{
+    const left=vehicles.filter(v=>v.id!==id);
+    if(left.length && !left.some(v=>v.selected)) left[0].selected=true;
+    setVehicles(left);
+  };
+
+  const topUp=(amt)=>{
+    setBalance(b=>b+amt);
+    setTopUpOpen(false);
+    showToast(`+${fmtMoney(amt)} added`);
+  };
+
+  const visibleLots=useMemo(()=>{
+    const q=search.trim().toLowerCase();
+    if(!q) return LOTS;
+    return LOTS.filter(l=>l.name.toLowerCase().includes(q)||l.addr.toLowerCase().includes(q));
+  },[search]);
+
+  const elapsed=active?now-active.startedAt:0;
+  const liveCost=active?(elapsed/3600000)*active.rate:0;
+
+  return(
+    <div className="wrap">
+      <div className="topbar">
+        <div className="logo">PARKING<span>·</span>HUB</div>
+        <div className="topbar-meta">
+          BALANCE<br/>
+          <b style={{color:"#f59e0b",fontFamily:"Bebas Neue",fontSize:13,letterSpacing:1}}>{fmtMoney(balance)}</b>
+        </div>
+      </div>
+
+      <div className="page-content">
+        {tab==="find" && <FindTab lots={visibleLots} search={search} setSearch={setSearch} onOpen={setOpenLot} active={active}/>}
+        {tab==="session" && <SessionTab active={active} elapsed={elapsed} liveCost={liveCost} onEnd={endSession} onSwitchToFind={()=>setTab("find")}/>}
+        {tab==="history" && <HistoryTab history={history}/>}
+        {tab==="me" && <ProfileTab vehicles={vehicles} balance={balance} onSelectV={selectVehicle} onAddV={addVehicle} onRemoveV={removeVehicle} onTopUp={()=>setTopUpOpen(true)} historyCount={history.length} totalSpent={history.reduce((a,b)=>a+b.cost,0)}/>}
+      </div>
+
+      <nav className="bnav">
+        <button className={`bn ${tab==="find"?"on":""}`} onClick={()=>setTab("find")}>
+          <div className="bn-ic">🔍</div>Find
+        </button>
+        <button className={`bn ${tab==="session"?"on":""}`} onClick={()=>setTab("session")}>
+          <div className="bn-ic">{active?"🟢":"🅿️"}</div>{active?"Active":"Session"}
+        </button>
+        <button className={`bn ${tab==="history"?"on":""}`} onClick={()=>setTab("history")}>
+          <div className="bn-ic">📜</div>History
+        </button>
+        <button className={`bn ${tab==="me"?"on":""}`} onClick={()=>setTab("me")}>
+          <div className="bn-ic">👤</div>Me
+        </button>
+      </nav>
+
+      {openLot && <LotSheet lot={openLot} onClose={()=>setOpenLot(null)} onPark={(spot)=>startSession(openLot,spot)} blocked={!!active}/>}
+      {topUpOpen && <TopUpSheet onClose={()=>setTopUpOpen(false)} onTopUp={topUp}/>}
+
+      {toast && <div className={`toast ${toast.warn?"warn":""}`}>{toast.msg}</div>}
+    </div>
+  );
+}
+
+function FindTab({lots,search,setSearch,onOpen,active}){
+  const totalFree=lots.reduce((a,l)=>a+(l.total-l.taken),0);
+  const avgRate=lots.length?(lots.reduce((a,l)=>a+l.rate,0)/lots.length):0;
+
+  return(
+    <div className="fade">
+      <div className="ptitle">FIND PARKING</div>
+      <div className="psub">Nearby lots · sorted by distance</div>
+
+      <div className="search">
+        <span className="search-ic">🔍</span>
+        <input placeholder="Search by name or address…" value={search} onChange={e=>setSearch(e.target.value)}/>
+      </div>
+
+      <div className="mets">
+        <div className="mc">
+          <div className="ml">Spots free</div>
+          <div className="mv">{totalFree}</div>
+          <div className="ms">across {lots.length} lots</div>
+        </div>
+        <div className="mc">
+          <div className="ml">Avg rate</div>
+          <div className="mv">{fmtMoney(avgRate)}</div>
+          <div className="ms">per hour</div>
+        </div>
+      </div>
+
+      {active && (
+        <div className="card" style={{borderColor:"#1e4a2e",background:"#0a1a10"}}>
+          <div className="cb" style={{display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:20}}>🟢</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:11,color:"#4ade80",letterSpacing:".08em",textTransform:"uppercase"}}>Active session</div>
+              <div style={{fontSize:13,color:"#e2dfd8",marginTop:2}}>{active.lotName} · Spot {active.spot}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="card">
+        <div className="ch"><div className="ct">Nearby Lots</div><div style={{fontSize:10,color:"#4b5563"}}>{lots.length} results</div></div>
+        {lots.length===0 && (
+          <div className="empty">
+            <div className="empty-ic">🔍</div>
+            <div className="empty-msg">No lots match "{search}"</div>
+          </div>
+        )}
+        {lots.map(l=>{
+          const free=l.total-l.taken;
+          const pct=l.taken/l.total;
+          const status=free===0?"full":pct>=0.85?"tight":"open";
+          const cls=status==="full"?"pl-full":status==="tight"?"pl-tight":"pl-open";
+          const label=status==="full"?"FULL":status==="tight"?`${free} LEFT`:`${free} FREE`;
+          return(
+            <div className="lot" key={l.id} onClick={()=>onOpen(l)}>
+              <div className="lot-emoji">{l.emoji}</div>
+              <div className="lot-mid">
+                <div className="lot-name">{l.name}</div>
+                <div className="lot-addr">{l.addr}</div>
+                <div className="lot-meta">
+                  <span className={`lot-pill ${cls}`}>{label}</span>
+                  {l.ev && <span className="lot-pill" style={{background:"#001a2a",color:"#38bdf8"}}>⚡ EV</span>}
+                  <span style={{fontSize:10,color:"#4b5563"}}>{l.hours}</span>
+                </div>
+              </div>
+              <div className="lot-right">
+                <div className="lot-rate">{fmtMoney(l.rate)}</div>
+                <div className="lot-unit">PER HR</div>
+                <div className="lot-dist">{l.dist} km</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SessionTab({active,elapsed,liveCost,onEnd,onSwitchToFind}){
+  if(!active){
+    return(
+      <div className="fade">
+        <div className="ptitle">NO ACTIVE SESSION</div>
+        <div className="psub">Pick a lot to start parking</div>
+        <div className="empty">
+          <div className="empty-ic">🅿️</div>
+          <div className="empty-msg">You're not parked anywhere right now</div>
+          <div className="empty-sub" style={{marginBottom:16}}>Your active session will show up here</div>
+          <button className="btn" style={{maxWidth:220,margin:"0 auto"}} onClick={onSwitchToFind}>FIND PARKING</button>
+        </div>
+      </div>
+    );
+  }
+
+  return(
+    <div className="fade">
+      <div className="ptitle">ACTIVE SESSION</div>
+      <div className="psub">{active.lotName} · {active.lotAddr}</div>
+
+      <div className="active-card">
+        <div className="active-status"><span className="dot"></span>PARKED · LIVE</div>
+        <div className="active-timer">{fmtTimer(elapsed)}</div>
+        <div className="active-cost">running cost <b>{fmtMoney(liveCost)}</b></div>
+        <div className="active-info">
+          <div>
+            <div className="il">SPOT</div>
+            <div className="iv" style={{fontFamily:"Bebas Neue",fontSize:18,letterSpacing:1}}>{active.spot}</div>
+          </div>
+          <div style={{textAlign:"center"}}>
+            <div className="il">VEHICLE</div>
+            <div className="iv" style={{fontFamily:"Bebas Neue",fontSize:15,letterSpacing:1}}>{active.vehicle}</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div className="il">RATE</div>
+            <div className="iv">{fmtMoney(active.rate)}/hr</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="ch"><div className="ct">Receipt preview</div></div>
+        <div className="cb">
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:6,fontSize:12}}>
+            <span style={{color:"#6b7280"}}>Started</span>
+            <span style={{color:"#e2dfd8"}}>{fmtDate(active.startedAt)}</span>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:6,fontSize:12}}>
+            <span style={{color:"#6b7280"}}>Elapsed</span>
+            <span style={{color:"#e2dfd8"}}>{fmtDuration(elapsed)}</span>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
+            <span style={{color:"#6b7280"}}>Total so far</span>
+            <span style={{color:"#f59e0b",fontFamily:"Bebas Neue",fontSize:18,letterSpacing:1}}>{fmtMoney(Math.max(1,liveCost))}</span>
+          </div>
+          <div style={{fontSize:10,color:"#374151",marginTop:6}}>Minimum charge $1.00</div>
+        </div>
+      </div>
+
+      <button className="btn danger" onClick={onEnd}>END SESSION & PAY</button>
+    </div>
+  );
+}
+
+function HistoryTab({history}){
+  const totalSpent=history.reduce((a,b)=>a+b.cost,0);
+  const totalTime=history.reduce((a,b)=>a+b.durationMs,0);
+
+  return(
+    <div className="fade">
+      <div className="ptitle">HISTORY</div>
+      <div className="psub">Past parking sessions</div>
+
+      <div className="mets">
+        <div className="mc">
+          <div className="ml">Sessions</div>
+          <div className="mv">{history.length}</div>
+          <div className="ms">all-time</div>
+        </div>
+        <div className="mc">
+          <div className="ml">Total spent</div>
+          <div className="mv">{fmtMoney(totalSpent)}</div>
+          <div className="ms">{fmtDuration(totalTime)} parked</div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="ch"><div className="ct">Recent</div></div>
+        {history.length===0 && (
+          <div className="empty">
+            <div className="empty-ic">📜</div>
+            <div className="empty-msg">No sessions yet</div>
+            <div className="empty-sub">Past parking will show up here</div>
+          </div>
+        )}
+        {history.map(h=>(
+          <div className="hr" key={h.id}>
+            <div className="hr-ic">{h.emoji}</div>
+            <div className="hr-mid">
+              <div className="hr-where">{h.lotName} · Spot {h.spot}</div>
+              <div className="hr-when">{fmtDate(h.endedAt)} · {h.vehicle}</div>
+            </div>
+            <div className="hr-right">
+              <div className="hr-amt">{fmtMoney(h.cost)}</div>
+              <div className="hr-dur">{fmtDuration(h.durationMs)}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProfileTab({vehicles,balance,onSelectV,onAddV,onRemoveV,onTopUp,historyCount,totalSpent}){
+  const [adding,setAdding]=useState(false);
+  const [newPlate,setNewPlate]=useState("");
+  const [newMake,setNewMake]=useState("");
+
+  const submitAdd=()=>{
+    if(!newPlate.trim()){return;}
+    onAddV(newPlate.trim(),newMake.trim()||"Vehicle");
+    setNewPlate("");setNewMake("");setAdding(false);
+  };
+
+  return(
+    <div className="fade">
+      <div className="ptitle">PROFILE</div>
+      <div className="psub">Vehicles, payment, stats</div>
+
+      <div className="card" style={{background:"linear-gradient(180deg,#1a1000 0%,#0b0d12 100%)",borderColor:"#3d2d00"}}>
+        <div className="cb">
+          <div style={{fontSize:10,letterSpacing:".1em",color:"#f59e0b",textTransform:"uppercase",marginBottom:4}}>Wallet balance</div>
+          <div style={{fontFamily:"Bebas Neue",fontSize:38,color:"#f59e0b",letterSpacing:2,lineHeight:1}}>{fmtMoney(balance)}</div>
+          <div style={{fontSize:11,color:"#6b7280",marginTop:4}}>{historyCount} sessions · {fmtMoney(totalSpent)} total spent</div>
+          <button className="btn" style={{marginTop:12}} onClick={onTopUp}>TOP UP</button>
+        </div>
+      </div>
+
+      <div className="sect">Vehicles</div>
+      <div className="card">
+        <div style={{padding:"10px 13px"}}>
+          {vehicles.map(v=>(
+            <div className={`vrow ${v.selected?"on":""}`} key={v.id} onClick={()=>onSelectV(v.id)}>
+              <div className="vrow-ic">🚗</div>
+              <div className="vrow-mid">
+                <div className="vrow-plate">{v.plate}</div>
+                <div className="vrow-make">{v.make}</div>
+              </div>
+              {v.selected && <div className="vrow-chk">✓</div>}
+              {vehicles.length>1 && (
+                <button className="sheet-close" style={{fontSize:14,color:"#7f1d1d"}} onClick={(e)=>{e.stopPropagation();onRemoveV(v.id);}}>✕</button>
+              )}
+            </div>
+          ))}
+          {!adding && (
+            <button className="btn ghost" onClick={()=>setAdding(true)}>+ ADD VEHICLE</button>
+          )}
+          {adding && (
+            <div style={{marginTop:6}}>
+              <label className="lbl">License plate</label>
+              <input className="input" placeholder="AB 123 CD" value={newPlate} onChange={e=>setNewPlate(e.target.value)} maxLength={12}/>
+              <label className="lbl">Make / model</label>
+              <input className="input" placeholder="Toyota Corolla" value={newMake} onChange={e=>setNewMake(e.target.value)} maxLength={30}/>
+              <div className="btn-row" style={{marginTop:10}}>
+                <button className="btn ghost" onClick={()=>{setAdding(false);setNewPlate("");setNewMake("");}}>CANCEL</button>
+                <button className="btn" onClick={submitAdd} disabled={!newPlate.trim()}>SAVE</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="sect">Payment method</div>
+      <div className="card">
+        <div className="prow">
+          <div className="pl-l"><span className="ic">💳</span>Visa ending 4242</div>
+          <div className="pl-v">DEFAULT</div>
+        </div>
+        <div className="prow">
+          <div className="pl-l"><span className="ic">📱</span>Apple Pay</div>
+          <div className="pl-v" style={{color:"#6b7280"}}>NOT LINKED</div>
+        </div>
+      </div>
+
+      <div className="sect">About</div>
+      <div className="card">
+        <div className="prow"><div className="pl-l">Version</div><div className="pl-v">1.0.0</div></div>
+        <div className="prow"><div className="pl-l">Support</div><div className="pl-v" style={{color:"#f59e0b"}}>help@parkinghub.app</div></div>
+      </div>
+    </div>
+  );
+}
+
+function LotSheet({lot,onClose,onPark,blocked}){
+  const spots=useMemo(()=>spotLayoutForLot(lot),[lot.id]);
+  const [sel,setSel]=useState(null);
+
+  const pick=(s)=>{
+    if(s.type!=="free") return;
+    setSel(s.i===sel?null:s.i);
+  };
+  const confirm=()=>{
+    const s=spots.find(x=>x.i===sel);
+    if(s) onPark(s);
+  };
+
+  const free=spots.filter(s=>s.type==="free").length;
+
+  return(
+    <div className="scrim" onClick={onClose}>
+      <div className="sheet" onClick={e=>e.stopPropagation()}>
+        <div className="sheet-hd">
+          <div className="sheet-title">{lot.name}</div>
+          <button className="sheet-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="detail-hero">
+          <div className="detail-name">{lot.emoji} {lot.name}</div>
+          <div className="detail-addr">{lot.addr} · {lot.dist} km away</div>
+          <div className="detail-stats">
+            <div><div className="l">Rate</div><div className="v">{fmtMoney(lot.rate)}/hr</div></div>
+            <div><div className="l">Available</div><div className="v" style={{color:free?"#4ade80":"#f87171"}}>{free}/{spots.length}</div></div>
+            <div><div className="l">Hours</div><div className="v">{lot.hours}</div></div>
+          </div>
+        </div>
+
+        <div className="sect">Pick a spot</div>
+        <div className="spot-grid">
+          {spots.map(s=>(
+            <div
+              key={s.i}
+              className={`spot ${sel===s.i?"sel":s.type}`}
+              onClick={()=>pick(s)}
+              title={s.label}
+            >{s.label}</div>
+          ))}
+        </div>
+        <div className="spot-legend">
+          <span><span className="sl-dot" style={{background:"#0f2a0f",border:"1px solid #1e4a1e"}}></span>Free</span>
+          <span><span className="sl-dot" style={{background:"#1a0e0e"}}></span>Taken</span>
+          <span><span className="sl-dot" style={{background:"#001a2a",border:"1px solid #003a4a"}}></span>EV</span>
+          <span><span className="sl-dot" style={{background:"#1a1d26"}}></span>Disabled</span>
+        </div>
+
+        <div style={{marginTop:14}}>
+          {blocked ? (
+            <button className="btn" disabled>END CURRENT SESSION FIRST</button>
+          ) : sel===null ? (
+            <button className="btn" disabled>SELECT A FREE SPOT</button>
+          ) : (
+            <button className="btn" onClick={confirm}>PARK AT {spots.find(s=>s.i===sel).label}</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TopUpSheet({onClose,onTopUp}){
+  const amounts=[10,25,50,100];
+  return(
+    <div className="scrim" onClick={onClose}>
+      <div className="sheet" onClick={e=>e.stopPropagation()}>
+        <div className="sheet-hd">
+          <div className="sheet-title">TOP UP WALLET</div>
+          <button className="sheet-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="psub" style={{marginBottom:14}}>Charges to Visa ending 4242</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+          {amounts.map(a=>(
+            <button key={a} className="btn ghost" style={{padding:"18px 10px",fontFamily:"Bebas Neue",fontSize:22,letterSpacing:1}} onClick={()=>onTopUp(a)}>
+              {fmtMoney(a)}
+            </button>
+          ))}
+        </div>
+        <div style={{fontSize:10,color:"#374151",textAlign:"center"}}>Funds available instantly</div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
