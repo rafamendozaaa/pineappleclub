@@ -187,6 +187,68 @@ async function main() {
   await page.waitForSelector('.logo');
   ok((await page.locator('.logo').textContent()).includes('HAUS'), 'driver app (Parking Haus) loaded');
 
+  console.log('\nFLOW 12 — Driver taps a listing, reserves it, hands off to the app');
+  await page.goto(APP_URL);
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.waitForSelector('.listing-grid .lc');
+  await page.locator('.listing-grid .lc').first().click(); // open booking
+  await page.waitForSelector('.bk-summary');
+  ok(await page.locator('.wiz .btn-primary', { hasText: 'Confirm' }).isDisabled(), 'Confirm disabled until a date is picked');
+  await page.fill('#bk-date', '2026-06-01');
+  await page.locator('.wiz .btn-primary', { hasText: 'Confirm' }).click();
+  await page.waitForSelector('.success');
+  ok((await page.locator('.success h3').textContent()).toLowerCase().includes('reserved'), 'reservation confirmed');
+  const booking = await page.evaluate(() => JSON.parse(localStorage.getItem('mkt_bookings') || '[]'));
+  ok(booking.length === 1 && booking[0].date === '2026-06-01', 'booking persisted to localStorage');
+  await page.locator('.success .btn-primary').click(); // Go to my parking
+  await page.waitForURL(/parking\.html$/);
+  ok(page.url().endsWith('parking.html'), 'booking hands off to parking.html');
+
+  console.log('\nFLOW 13 — Host edits then unpublishes a listing');
+  await page.goto(APP_URL);
+  await page.evaluate(() => localStorage.setItem('mkt_listings', JSON.stringify([
+    { id: 'L1', title: 'My driveway', loc: 'Main St 1', price: 10, unit: '/day', rating: null, host: 'Jordan', tags: [['shield', 'Gated']], type: 'Driveway', photoData: '', img: '', mine: true },
+  ])));
+  await page.reload();
+  await page.waitForSelector('.hero h1');
+  await page.locator('.nav-links button', { hasText: 'My listings' }).click();
+  await page.waitForSelector('.ml-card');
+  ok((await page.locator('.ml-card').count()) === 1, 'my listings shows the seeded listing');
+  await page.locator('.ml-actions .btn', { hasText: 'Edit' }).click();
+  await page.waitForSelector('.ls-form');
+  ok((await page.locator('#ls-title').inputValue()) === 'My driveway', 'edit form prefilled from listing');
+  await page.fill('#ls-title', 'My driveway (updated)');
+  await page.locator('.ls-form .btn-primary', { hasText: 'Save changes' }).click();
+  await page.waitForSelector('.ls-success');
+  await page.locator('.ls-success .btn-primary', { hasText: 'View on home' }).click();
+  await page.waitForSelector('.listing-grid');
+  ok((await page.locator('.lc').count()) === 7, 'edit updates in place — no duplicate (still 7 cards)');
+  ok((await page.locator('.lc-title', { hasText: 'My driveway (updated)' }).count()) === 1, 'edited title shows on home');
+  await page.locator('.nav-links button', { hasText: 'My listings' }).click();
+  await page.waitForSelector('.ml-card');
+  await page.locator('.ml-actions .btn', { hasText: 'Unpublish' }).click();
+  ok((await page.locator('.ml-card').count()) === 0, 'listing removed after unpublish');
+  ok((await page.locator('.ml-empty').count()) === 1, 'empty state shown when no listings');
+
+  console.log('\nFLOW 14 — Host uploads a real photo (file -> data URL on the card)');
+  const fixturePng = '/tmp/mkt-fixture.png';
+  fs.writeFileSync(fixturePng, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64'));
+  await page.goto(APP_URL);
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.waitForSelector('.hero h1');
+  await page.locator('.nav-links button', { hasText: 'My listings' }).click();
+  await page.waitForSelector('.ml-empty');
+  await page.locator('.ml-empty .btn').click(); // List your first spot
+  await page.waitForSelector('.ls-form');
+  ok((await page.locator('.ph-drop').count()) === 1, 'photo upload dropzone shown (replaces URL field)');
+  await page.setInputFiles('.ph-drop input[type="file"]', fixturePng);
+  await page.waitForSelector('.ph-thumb img');
+  ok((await page.locator('.ph-thumb img').count()) === 1, 'thumbnail shown after upload');
+  const previewSrc = await page.locator('.ls-preview .lc-img').getAttribute('src');
+  ok(previewSrc.startsWith('data:image'), 'preview card uses the uploaded photo (data URL)');
+
   await browser.close();
   if (errors.length) {
     console.error('\n❌ JS errors during run:\n  ' + errors.join('\n  '));

@@ -250,6 +250,31 @@ button{font-family:var(--font-body);cursor:pointer;}
 .pv-label{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-muted);margin-bottom:8px;}
 .ls-success{max-width:430px;margin:18px auto 0;text-align:center;}
 
+/* ── Photo upload ── */
+.ph-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1.5px dashed var(--color-border);border-radius:var(--radius-button);padding:20px;color:var(--color-muted);cursor:pointer;font-size:13px;font-weight:600;background:var(--color-bg);}
+.ph-drop:hover{border-color:var(--color-primary);color:var(--color-primary);}
+.ph-thumb{position:relative;border-radius:var(--radius-button);overflow:hidden;aspect-ratio:16/9;border:1px solid var(--color-border);}
+.ph-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.ph-remove{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:var(--radius-pill);border:none;background:var(--color-surface);box-shadow:var(--shadow-card);color:var(--color-text);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+
+/* ── Driver booking sheet ── */
+.bk-summary{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--color-border);border-radius:var(--radius-card);margin-bottom:8px;background:var(--color-bg);}
+.bk-thumb{width:74px;height:54px;border-radius:var(--radius-button);overflow:hidden;flex-shrink:0;background:var(--color-border);}
+.bk-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.bk-sum-mid{flex:1;min-width:0;}
+.bk-sum-title{font-weight:700;font-size:14px;}
+.bk-sum-loc{font-size:12px;color:var(--color-muted);display:flex;align-items:center;gap:4px;}
+.bk-price{font-family:var(--font-heading);font-weight:700;font-size:20px;color:var(--color-primary);}
+.bk-total{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--color-border);padding-top:12px;font-size:14px;}
+.bk-total b{font-family:var(--font-heading);font-size:22px;color:var(--color-text);}
+
+/* ── My listings ── */
+.ml-card{display:flex;flex-direction:column;gap:8px;}
+.ml-actions{display:flex;gap:8px;}
+.ml-actions .btn{flex:1;height:40px;font-size:14px;}
+.ml-empty{text-align:center;padding:46px 16px;color:var(--color-muted);font-size:14px;}
+.ml-empty .empty-ic{font-size:42px;opacity:.5;margin-bottom:8px;}
+
 /* ── Responsive ── */
 @media(max-width:860px){
   .tiles,.listing-grid{grid-template-columns:1fr 1fr;}
@@ -348,11 +373,17 @@ const LISTINGS=[
 ];
 
 /* ───────── Listing card (bug-free image + text) ───────── */
-function ListingCard({l}){
+function ListingCard({l,onOpen}){
   const [failed,setFailed]=useState(!l.img);
   const [fav,setFav]=useState(false);
+  const clickable=!!onOpen;
+  const openProps=clickable?{
+    onClick:()=>onOpen(l), role:'button', tabIndex:0,
+    'aria-label':`View ${l.title}`, style:{cursor:'pointer'},
+    onKeyDown:(e)=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();onOpen(l);} },
+  }:{};
   return (
-    <article className="lc">
+    <article className="lc" {...openProps}>
       <div className="lc-imgwrap">
         {failed
           ? <div className="lc-placeholder"><Icon name="image" size={28} label="Photo unavailable"/><span>No photo yet</span></div>
@@ -360,7 +391,7 @@ function ListingCard({l}){
         <div className="lc-scrim"/>
         <div className="lc-rating">{typeof l.rating==='number' ? <><StarSolid/> {l.rating.toFixed(1)}</> : 'New'}</div>
         <div className="lc-price">${l.price}<small>{l.unit}</small></div>
-        <button className={`lc-fav ${fav?'on':''}`} aria-label={fav?'Remove from saved':'Save listing'} aria-pressed={fav} onClick={()=>setFav(f=>!f)}>
+        <button className={`lc-fav ${fav?'on':''}`} aria-label={fav?'Remove from saved':'Save listing'} aria-pressed={fav} onClick={(e)=>{e.stopPropagation();setFav(f=>!f);}}>
           <Icon name="heart" size={18}/>
         </button>
       </div>
@@ -448,12 +479,12 @@ function Benefits(){
   );
 }
 
-function FeaturedListings({extra=[]}){
+function FeaturedListings({extra=[],onOpen}){
   const all=[...extra,...LISTINGS];
   return (
     <section className="section listings">
       <div className="sec-head"><h2>Spots near tonight's venue</h2><p>Verified hosts, transparent prices, instant booking.</p></div>
-      <div className="listing-grid">{all.map(l=> <ListingCard key={l.id} l={l}/>)}</div>
+      <div className="listing-grid">{all.map(l=> <ListingCard key={l.id} l={l} onOpen={onOpen}/>)}</div>
     </section>
   );
 }
@@ -731,34 +762,49 @@ const SPOT_TYPES=['Driveway','Garage','Parking lot','Rooftop','Underground'];
 const PHOTO_PRESETS=[['#1A6BF0','#0EA5E9'],['#F59E0B','#F97316'],['#16A34A','#0EA5E9'],['#7C3AED','#1A6BF0']];
 const amenityLabel=(ic)=>(AMENITIES.find(a=>a[0]===ic)||[ic,ic])[1];
 
-function ListSpotView({hostProfile={},onPublish,onHome}){
-  const [form,setForm]=useState({
+function ListSpotView({hostProfile={},editing=null,onPublish,onHome}){
+  const init = editing ? {
+    title:editing.title, address:editing.loc, price:String(editing.price),
+    unit:editing.unit||'/day', type:editing.type||'Driveway',
+    photoData:editing.photoData||'', host:editing.host||'You',
+  } : {
     title:'', address:hostProfile.address||'', price:hostProfile.price||'',
-    unit:'/day', type:'Driveway', photo:'',
+    unit:'/day', type:'Driveway', photoData:'',
     host:((hostProfile.name||'You').trim().split(/\s+/)[0])||'You',
-  });
-  const [amenities,setAmenities]=useState(['shield','zap']);
+  };
+  const [form,setForm]=useState(init);
+  const [amenities,setAmenities]=useState(editing ? editing.tags.map(t=>t[0]) : ['shield','zap']);
   const [published,setPublished]=useState(null);
   const set=(k)=>(e)=>setForm(f=>({...f,[k]:e.target.value}));
   const toggleAm=(ic)=>setAmenities(a=>a.includes(ic)?a.filter(x=>x!==ic):[...a,ic]);
   const valid=form.title.trim()&&form.address.trim()&&String(form.price).trim()&&Number(form.price)>0;
 
+  const onPhoto=(e)=>{
+    const file=e.target.files&&e.target.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=()=>setForm(f=>({...f,photoData:String(reader.result)}));
+    reader.readAsDataURL(file);
+  };
+
   const preview={
-    id:'preview',
+    id:editing?editing.id:'preview',
     title:form.title||'Your spot title',
     loc:form.address||'Address appears here',
     price:Number(form.price)||0,
     unit:form.unit,
+    type:form.type,
     rating:null,
     host:form.host||'You',
     tags:amenities.slice(0,3).map(ic=>[ic,amenityLabel(ic)]),
-    img:form.photo||gradientPhoto(...PHOTO_PRESETS[form.title.length%PHOTO_PRESETS.length]),
+    photoData:form.photoData,
+    img:form.photoData||gradientPhoto(...PHOTO_PRESETS[form.title.length%PHOTO_PRESETS.length]),
     mine:true,
   };
 
   const publish=()=>{
     if(!valid) return;
-    const listing={...preview,id:'L'+Date.now()};
+    const listing={...preview,id:editing?editing.id:'L'+Date.now()};
     onPublish(listing);
     setPublished(listing);
     window.scrollTo(0,0);
@@ -769,11 +815,11 @@ function ListSpotView({hostProfile={},onPublish,onHome}){
       <section className="section ls">
         <div className="ls-success">
           <div className="success-badge"><Icon name="check" size={36} label="Published"/></div>
-          <h3 style={{fontSize:26,fontWeight:800,marginBottom:6}}>Your spot is live!</h3>
+          <h3 style={{fontSize:26,fontWeight:800,marginBottom:6}}>{editing?'Listing updated!':'Your spot is live!'}</h3>
           <p style={{color:'var(--color-muted)',marginBottom:18}}>Drivers near the venue can book it now. Here's how it looks:</p>
           <div style={{maxWidth:320,margin:'0 auto 20px'}}><ListingCard l={published}/></div>
           <div className="btn-row" style={{display:'flex',gap:10}}>
-            <button className="btn btn-outline" style={{flex:1}} onClick={()=>{setPublished(null);setForm(f=>({...f,title:'',photo:''}));}}>List another</button>
+            <button className="btn btn-outline" style={{flex:1}} onClick={()=>{setPublished(null);setForm(f=>({...f,title:'',photoData:''}));setAmenities(['shield','zap']);}}>List another</button>
             <button className="btn btn-primary" style={{flex:1}} onClick={onHome}>View on home</button>
           </div>
         </div>
@@ -785,7 +831,7 @@ function ListSpotView({hostProfile={},onPublish,onHome}){
     <section className="section ls">
       <button className="ls-back" onClick={onHome}><Icon name="arrowLeft" size={16}/> Back to home</button>
       <div className="sec-head" style={{textAlign:'left',marginBottom:18}}>
-        <h2 style={{fontSize:30}}>List your spot</h2>
+        <h2 style={{fontSize:30}}>{editing?'Edit your spot':'List your spot'}</h2>
         <p>Publish in under a minute — preview updates as you type.</p>
       </div>
       <div className="ls-grid">
@@ -819,8 +865,16 @@ function ListSpotView({hostProfile={},onPublish,onHome}){
             </select>
           </div>
           <div className="field">
-            <label htmlFor="ls-photo">Photo URL <span className="opt">(optional)</span></label>
-            <input id="ls-photo" className="input" placeholder="https://… (leave blank for a placeholder)" value={form.photo} onChange={set('photo')}/>
+            <label>Photo <span className="opt">(optional)</span></label>
+            {form.photoData
+              ? <div className="ph-thumb">
+                  <img src={form.photoData} alt="Listing photo preview"/>
+                  <button type="button" className="ph-remove" aria-label="Remove photo" onClick={()=>setForm(f=>({...f,photoData:''}))}><Icon name="close" size={16}/></button>
+                </div>
+              : <label className="ph-drop">
+                  <input type="file" accept="image/*" onChange={onPhoto} hidden/>
+                  <Icon name="image" size={22}/><span>Click to upload a photo</span>
+                </label>}
           </div>
           <div className="field">
             <label>Amenities</label>
@@ -837,7 +891,7 @@ function ListSpotView({hostProfile={},onPublish,onHome}){
             </div>
           </div>
           <button className="btn btn-primary btn-block" style={{height:50,fontSize:16,marginTop:6}} disabled={!valid} onClick={publish}>
-            <Icon name="check" size={20}/> Publish listing
+            <Icon name="check" size={20}/> {editing?'Save changes':'Publish listing'}
           </button>
         </div>
 
@@ -846,6 +900,102 @@ function ListSpotView({hostProfile={},onPublish,onHome}){
           <ListingCard l={preview}/>
         </div>
       </div>
+    </section>
+  );
+}
+
+/* ───────── Driver booking ───────── */
+function BookingSheet({listing,onClose}){
+  const [date,setDate]=useState('');
+  const [time,setTime]=useState('');
+  const [done,setDone]=useState(false);
+  const ready=!!date;
+
+  const confirm=()=>{
+    if(!ready) return;
+    try{
+      const prev=JSON.parse(localStorage.getItem('mkt_bookings'))||[];
+      localStorage.setItem('mkt_bookings',JSON.stringify([{id:'B'+Date.now(),listingId:listing.id,title:listing.title,loc:listing.loc,price:listing.price,unit:listing.unit,date,time},...prev]));
+    }catch{}
+    setDone(true);
+  };
+  const goApp=()=>{ window.location.href='parking.html'; };
+
+  return (
+    <div className="wiz-scrim" onMouseDown={(e)=>{if(e.target===e.currentTarget)onClose();}}>
+      <div className="wiz" role="dialog" aria-modal="true" aria-label="Reserve spot" style={{maxWidth:460}}>
+        <div className="wiz-top">
+          <div className="brand"><span className="blob"><Icon name="car" size={18}/></span> Parking<span>Haus</span></div>
+          <button className="wiz-close" aria-label="Close booking" onClick={onClose}><Icon name="close" size={18}/></button>
+        </div>
+        <div className="wiz-body">
+          {done ? (
+            <div className="success">
+              <div className="success-badge"><Icon name="check" size={36} label="Reserved"/></div>
+              <h3>Spot reserved!</h3>
+              <p>{listing.title} is held for you{date?` on ${date}${time?` at ${time}`:''}`:''}.</p>
+              <button className="btn btn-primary btn-block" style={{height:50,fontSize:16}} onClick={goApp}>
+                <Icon name="car" size={20}/> Go to my parking
+              </button>
+              <button className="btn btn-ghost btn-block" style={{marginTop:8}} onClick={onClose}>Browse more spots</button>
+            </div>
+          ) : (
+            <div>
+              <div className="wiz-h">Reserve this spot</div>
+              <div className="wiz-sub">Choose when you'll arrive — confirm in one tap.</div>
+              <div className="bk-summary">
+                <div className="bk-thumb">{listing.img && <img src={listing.img} alt={listing.title}/>}</div>
+                <div className="bk-sum-mid">
+                  <div className="bk-sum-title">{listing.title}</div>
+                  <div className="bk-sum-loc"><Icon name="mapPin" size={12}/> {listing.loc}</div>
+                </div>
+                <div className="bk-price">${listing.price}<span style={{fontFamily:'var(--font-body)',fontWeight:500,fontSize:12,color:'var(--color-muted)'}}>{listing.unit}</span></div>
+              </div>
+              <div className="ls-row2">
+                <div className="field"><label htmlFor="bk-date">Date</label><input id="bk-date" className="input" type="date" value={date} onChange={(e)=>setDate(e.target.value)}/></div>
+                <div className="field"><label htmlFor="bk-time">Arrival <span className="opt">(optional)</span></label><input id="bk-time" className="input" type="time" value={time} onChange={(e)=>setTime(e.target.value)}/></div>
+              </div>
+              <div className="bk-total"><span style={{color:'var(--color-muted)'}}>Total due at venue</span><b>${listing.price}<span style={{fontFamily:'var(--font-body)',fontWeight:500,fontSize:12,color:'var(--color-muted)'}}>{listing.unit}</span></b></div>
+              <button className="btn btn-primary btn-block" style={{height:50,fontSize:16,marginTop:16}} disabled={!ready} onClick={confirm}>
+                <Icon name="check" size={20}/> Confirm reservation
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ───────── Host: my listings ───────── */
+function MyListingsView({listings,onEdit,onUnpublish,onHome,onListNew}){
+  return (
+    <section className="section ls">
+      <button className="ls-back" onClick={onHome}><Icon name="arrowLeft" size={16}/> Back to home</button>
+      <div className="sec-head" style={{textAlign:'left',marginBottom:18,display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:12}}>
+        <div><h2 style={{fontSize:30}}>My listings</h2><p>{listings.length} active spot{listings.length===1?'':'s'}</p></div>
+        <button className="btn btn-primary" onClick={onListNew}><Icon name="home" size={18}/> List a new spot</button>
+      </div>
+      {listings.length===0 ? (
+        <div className="ml-empty">
+          <div className="empty-ic">🅿️</div>
+          <div style={{fontSize:15,fontWeight:600,color:'var(--color-text)',marginBottom:4}}>No listings yet</div>
+          <div style={{marginBottom:16}}>Publish your first spot to start earning.</div>
+          <button className="btn btn-primary" style={{maxWidth:220,margin:'0 auto'}} onClick={onListNew}>List your first spot</button>
+        </div>
+      ) : (
+        <div className="listing-grid">
+          {listings.map(l=>(
+            <div className="ml-card" key={l.id}>
+              <ListingCard l={l}/>
+              <div className="ml-actions">
+                <button className="btn btn-outline" onClick={()=>onEdit(l)}><Icon name="key" size={16}/> Edit</button>
+                <button className="btn btn-outline" style={{color:'var(--color-danger)'}} aria-label={`Unpublish ${l.title}`} onClick={()=>onUnpublish(l.id)}>Unpublish</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -859,6 +1009,7 @@ function Nav({onSignup,onView}){
         <nav className="nav-links">
           <button onClick={()=>onSignup('driver')}>Find parking</button>
           <button onClick={()=>onSignup('host')}>Become a host</button>
+          <button onClick={()=>onView('my-listings')}>My listings</button>
           <button onClick={()=>onView('styleguide')}>Style guide</button>
         </nav>
         <div className="nav-cta">
@@ -874,18 +1025,26 @@ function App(){
   const [view,setView]=useState('home');
   const [signup,setSignup]=useState(null); // {role} | null
   const [hostProfile,setHostProfile]=useState({});
+  const [editing,setEditing]=useState(null); // listing being edited | null
+  const [booking,setBooking]=useState(null); // listing being booked | null
   const [published,setPublished]=useState(()=>{try{return JSON.parse(localStorage.getItem('mkt_listings'))||[];}catch{return [];}});
   const openSignup=(role)=>setSignup({role});
+  const goHome=()=>{ setEditing(null); setView('home'); };
 
   useEffect(()=>{try{localStorage.setItem('mkt_listings',JSON.stringify(published));}catch{}},[published]);
   useEffect(()=>{ if(view!=='home') window.scrollTo(0,0); },[view]);
 
   // Wizard complete: drivers go to the live driver app, hosts go to the listing form.
   const onFinish=(role,profile)=>{
-    if(role==='host'){ setHostProfile(profile||{}); setView('list-spot'); }
+    if(role==='host'){ setHostProfile(profile||{}); setEditing(null); setView('list-spot'); }
     else { window.location.href='parking.html'; }
   };
-  const addListing=(l)=>setPublished(p=>[l,...p]);
+  const upsertListing=(l)=>setPublished(p=>{
+    const i=p.findIndex(x=>x.id===l.id);
+    if(i>=0){ const c=[...p]; c[i]=l; return c; }
+    return [l,...p];
+  });
+  const unpublish=(id)=>setPublished(p=>p.filter(x=>x.id!==id));
 
   return (
     <div>
@@ -893,10 +1052,11 @@ function App(){
       {view==='home' && <main>
         <Hero onSignup={openSignup}/>
         <Benefits/>
-        <FeaturedListings extra={published}/>
+        <FeaturedListings extra={published} onOpen={setBooking}/>
       </main>}
       {view==='styleguide' && <main><StyleGuide/></main>}
-      {view==='list-spot' && <main><ListSpotView hostProfile={hostProfile} onPublish={addListing} onHome={()=>setView('home')}/></main>}
+      {view==='list-spot' && <main><ListSpotView hostProfile={hostProfile} editing={editing} onPublish={upsertListing} onHome={goHome}/></main>}
+      {view==='my-listings' && <main><MyListingsView listings={published} onEdit={(l)=>{setEditing(l);setView('list-spot');}} onUnpublish={unpublish} onHome={goHome} onListNew={()=>{setEditing(null);setView('list-spot');}}/></main>}
       <footer className="footer">
         <div className="footer-inner">
           <div className="brand"><span className="blob" style={{width:24,height:24}}><Icon name="car" size={15}/></span> Parking<span>Haus</span></div>
@@ -904,6 +1064,7 @@ function App(){
         </div>
       </footer>
       {signup && <SignupWizard initialRole={signup.role} onClose={()=>setSignup(null)} onFinish={onFinish}/>}
+      {booking && <BookingSheet listing={booking} onClose={()=>setBooking(null)}/>}
     </div>
   );
 }
