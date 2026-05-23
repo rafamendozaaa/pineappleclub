@@ -7,6 +7,7 @@
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 /* ─────────────────────────────────────────────────────────────
@@ -330,6 +331,28 @@ button{font-family:var(--font-body);cursor:pointer;}
 <div id="root"></div>
 <script type="text/babel">
 const {useState,useEffect,useMemo}=React;
+
+/* ── Backend config ───────────────────────────────────────────────────────────
+   Leave BOTH blank to run the local-storage demo (default — fully working).
+   Fill them with your Supabase project values to switch to the real backend
+   (run db/schema.sql first). The anon key is safe in the frontend; NEVER put
+   the service_role key here.
+   NOTE: the Supabase code paths below are written but UNTESTED against a live
+   project from this environment — verify after wiring real credentials. */
+const SUPABASE_URL = "";       // e.g. "https://xxxxxxxx.supabase.co"
+const SUPABASE_ANON_KEY = "";  // anon/public key
+const sb = (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+const REMOTE = !!sb;           // true => Supabase backend, false => local demo
+if (SUPABASE_URL && SUPABASE_ANON_KEY && !window.supabase) {
+  console.warn("Parking Haus: Supabase configured but supabase-js failed to load — running in local mode.");
+}
+
+// localStorage helpers (used in local mode)
+const lsGet=(k,d)=>{try{const v=localStorage.getItem(k);return v!=null?JSON.parse(v):d;}catch{return d;}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
+const lsDel=(k)=>{try{localStorage.removeItem(k);}catch{}};
 
 /* ───────── Icons — single library (Lucide line icons), fixed px sizing ─────────
    Rendered as inline SVG with explicit width/height (never font-size scaled).
@@ -811,6 +834,10 @@ function ListSpotView({hostProfile={},editing=null,onPublish,onHome}){
   const onPhoto=(e)=>{
     const file=e.target.files&&e.target.files[0];
     if(!file) return;
+    if(REMOTE){
+      db.uploadPhoto(file).then(url=>setForm(f=>({...f,photoData:url}))).catch(err=>console.warn('Photo upload failed',err));
+      return;
+    }
     const reader=new FileReader();
     reader.onload=()=>setForm(f=>({...f,photoData:String(reader.result)}));
     reader.readAsDataURL(file);
@@ -1035,8 +1062,22 @@ function LoginModal({onClose,onLogin}){
   const [email,setEmail]=useState('');
   const [pw,setPw]=useState('');
   const [touched,setTouched]=useState(false);
-  const valid=emailOk(email)&&pw.length>=1;
-  const submit=(e)=>{ if(e)e.preventDefault(); if(!valid)return; onLogin(email.trim().toLowerCase()); };
+  const [sent,setSent]=useState(false);
+  const [busy,setBusy]=useState(false);
+  const [err,setErr]=useState('');
+  const valid = REMOTE ? emailOk(email) : (emailOk(email)&&pw.length>=1);
+  const submit=async(e)=>{
+    if(e)e.preventDefault();
+    if(!valid) return;
+    if(REMOTE){
+      setBusy(true); setErr('');
+      try{ await onLogin(email.trim().toLowerCase()); setSent(true); }
+      catch(ex){ setErr(ex.message||'Could not send magic link'); }
+      setBusy(false);
+    } else {
+      onLogin(email.trim().toLowerCase());
+    }
+  };
   return (
     <div className="wiz-scrim" onMouseDown={(e)=>{if(e.target===e.currentTarget)onClose();}}>
       <div className="wiz" role="dialog" aria-modal="true" aria-label="Log in" style={{maxWidth:420}}>
@@ -1044,19 +1085,33 @@ function LoginModal({onClose,onLogin}){
           <div className="brand"><span className="blob"><Icon name="car" size={18}/></span> Parking<span>Haus</span></div>
           <button className="wiz-close" aria-label="Close log in" onClick={onClose}><Icon name="close" size={18}/></button>
         </div>
-        <form className="wiz-body" onSubmit={submit}>
-          <div className="wiz-h">Log in</div>
-          <div className="wiz-sub">Owners and members sign in here.</div>
-          <div className="field">
-            <label htmlFor="login-email">Email</label>
-            <input id="login-email" className={`input ${touched&&!emailOk(email)?'invalid':''}`} type="email" placeholder="you@email.com" value={email} onChange={(e)=>setEmail(e.target.value)} onBlur={()=>setTouched(true)}/>
+        {sent ? (
+          <div className="wiz-body">
+            <div className="success" style={{paddingTop:6}}>
+              <div className="success-badge"><Icon name="mail" size={34} label="Email sent"/></div>
+              <h3>Check your email</h3>
+              <p>We sent a sign-in link to {email}. Open it on this device to finish logging in.</p>
+              <button className="btn btn-ghost btn-block" onClick={onClose}>Done</button>
+            </div>
           </div>
-          <div className="field">
-            <label htmlFor="login-pw">Password</label>
-            <input id="login-pw" className="input" type="password" placeholder="Your password" value={pw} onChange={(e)=>setPw(e.target.value)}/>
-          </div>
-          <button className="btn btn-primary btn-block" style={{height:48,fontSize:15,marginTop:6}} type="submit" disabled={!valid}>Log in</button>
-        </form>
+        ) : (
+          <form className="wiz-body" onSubmit={submit}>
+            <div className="wiz-h">Log in</div>
+            <div className="wiz-sub">{REMOTE?'We\'ll email you a secure sign-in link.':'Owners and members sign in here.'}</div>
+            <div className="field">
+              <label htmlFor="login-email">Email</label>
+              <input id="login-email" className={`input ${touched&&!emailOk(email)?'invalid':''}`} type="email" placeholder="you@email.com" value={email} onChange={(e)=>setEmail(e.target.value)} onBlur={()=>setTouched(true)}/>
+            </div>
+            {!REMOTE && (
+              <div className="field">
+                <label htmlFor="login-pw">Password</label>
+                <input id="login-pw" className="input" type="password" placeholder="Your password" value={pw} onChange={(e)=>setPw(e.target.value)}/>
+              </div>
+            )}
+            {err && <div className="hint err"><Icon name="close" size={13}/> {err}</div>}
+            <button className="btn btn-primary btn-block" style={{height:48,fontSize:15,marginTop:6}} type="submit" disabled={!valid||busy}>{REMOTE?'Email me a link':'Log in'}</button>
+          </form>
+        )}
       </div>
     </div>
   );
@@ -1139,6 +1194,69 @@ function AdminGate(){
   );
 }
 
+/* ───────── Supabase data adapter ─────────
+   Only used when REMOTE (credentials configured). Maps DB rows <-> the UI
+   listing/booking shapes the components already use. UNTESTED against a live
+   project from this environment — treat the first real run as verification. */
+const isUuid=(s)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(s||''));
+function listingFromRow(r){
+  return {
+    id:r.id, title:r.title, loc:r.address, price:Number(r.price), unit:r.unit, type:r.type,
+    host:(r.host&&r.host.full_name)?r.host.full_name.split(/\s+/)[0]:'Host',
+    rating:null, tags:(r.amenities||[]).map(ic=>[ic,amenityLabel(ic)]),
+    photoData:'', img:r.photo_url||'', mine:true,
+  };
+}
+function rowFromListing(l,hostId){
+  return {
+    id:isUuid(l.id)?l.id:undefined,           // let Postgres generate ids for new rows
+    host_id:hostId, title:l.title, address:l.loc, price:l.price, unit:l.unit, type:l.type,
+    photo_url:l.photoData||(typeof l.img==='string'&&l.img.startsWith('http')?l.img:null),
+    amenities:(l.tags||[]).map(t=>t[0]), status:'live',
+  };
+}
+function bookingFromRow(b){
+  return { id:b.id, title:(b.listing&&b.listing.title)||'Spot', loc:(b.listing&&b.listing.address)||'', price:Number(b.price), unit:'', date:b.booked_date, time:b.arrival||'' };
+}
+const db = {
+  async loadSession(){
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session) return null;
+    const { data:p } = await sb.from('profiles').select('email,role').eq('id',session.user.id).single();
+    return { email:(p&&p.email)||session.user.email, role:(p&&p.role)||'user' };
+  },
+  onAuthChange(cb){ return sb.auth.onAuthStateChange(()=>cb()); },
+  async sendMagicLink(email){ const { error }=await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo:window.location.href } }); if(error) throw error; },
+  async signOut(){ await sb.auth.signOut(); },
+  async loadListings(){
+    const { data } = await sb.from('listings').select('*, host:profiles(full_name)').eq('status','live').order('created_at',{ascending:false});
+    return (data||[]).map(listingFromRow);
+  },
+  async saveListing(l){
+    const { data:{ user } } = await sb.auth.getUser();
+    const { data } = await sb.from('listings').upsert(rowFromListing(l,user.id)).select('*, host:profiles(full_name)').single();
+    return data?listingFromRow(data):l;
+  },
+  async deleteListing(id){ await sb.from('listings').delete().eq('id',id); },
+  async loadBookings(){
+    const { data } = await sb.from('bookings').select('*, listing:listings(title,address)').order('created_at',{ascending:false});
+    return (data||[]).map(bookingFromRow);
+  },
+  async saveBooking(b){
+    const { data:{ user } } = await sb.auth.getUser();
+    const { data } = await sb.from('bookings').insert({ listing_id:b.listingId, driver_id:user.id, booked_date:b.date, arrival:b.time||null, price:b.price }).select().single();
+    return data?{ ...b, id:data.id }:b;
+  },
+  async deleteBooking(id){ await sb.from('bookings').delete().eq('id',id); },
+  async uploadPhoto(file){
+    const { data:{ user } } = await sb.auth.getUser();
+    const path=`${user.id}/${Date.now()}_${file.name}`;
+    const up=await sb.storage.from('listing-photos').upload(path,file,{ upsert:true });
+    if(up.error) throw up.error;
+    return sb.storage.from('listing-photos').getPublicUrl(path).data.publicUrl;
+  },
+};
+
 /* ───────── App shell ───────── */
 function Nav({onSignup,onView,session,isOwner,onLogin,onLogout}){
   return (
@@ -1172,41 +1290,56 @@ function App(){
   const [view,setView]=useState('home');
   const [signup,setSignup]=useState(null); // {role} | null
   const [showLogin,setShowLogin]=useState(false);
-  const [session,setSession]=useState(()=>{try{return JSON.parse(localStorage.getItem('mkt_session'))||null;}catch{return null;}});
+  const [session,setSession]=useState(()=> REMOTE ? null : lsGet('mkt_session',null));
   const [hostProfile,setHostProfile]=useState({});
   const [editing,setEditing]=useState(null); // listing being edited | null
   const [booking,setBooking]=useState(null); // listing being booked | null
-  const [published,setPublished]=useState(()=>{try{return JSON.parse(localStorage.getItem('mkt_listings'))||[];}catch{return [];}});
-  const [bookings,setBookings]=useState(()=>{try{return JSON.parse(localStorage.getItem('mkt_bookings'))||[];}catch{return [];}});
+  const [published,setPublished]=useState(()=> REMOTE ? [] : lsGet('mkt_listings',[]));
+  const [bookings,setBookings]=useState(()=> REMOTE ? [] : lsGet('mkt_bookings',[]));
   const openSignup=(role)=>setSignup({role});
   const goHome=()=>{ setEditing(null); setView('home'); };
-  const isOwner=!!session && session.email===OWNER_EMAIL;
+  const isOwner=!!session && (session.role==='owner' || session.email===OWNER_EMAIL);
 
-  useEffect(()=>{try{localStorage.setItem('mkt_listings',JSON.stringify(published));}catch{}},[published]);
-  useEffect(()=>{try{localStorage.setItem('mkt_bookings',JSON.stringify(bookings));}catch{}},[bookings]);
-  useEffect(()=>{try{session?localStorage.setItem('mkt_session',JSON.stringify(session)):localStorage.removeItem('mkt_session');}catch{}},[session]);
+  // Local mode: persist to localStorage (Supabase mode persists per-mutation in db).
+  useEffect(()=>{ if(!REMOTE) lsSet('mkt_listings',published); },[published]);
+  useEffect(()=>{ if(!REMOTE) lsSet('mkt_bookings',bookings); },[bookings]);
+  useEffect(()=>{ if(!REMOTE){ session?lsSet('mkt_session',session):lsDel('mkt_session'); } },[session]);
   useEffect(()=>{ if(view!=='home') window.scrollTo(0,0); },[view]);
+
+  // Supabase mode: hydrate from the backend and follow auth changes.
+  useEffect(()=>{
+    if(!REMOTE) return;
+    db.loadListings().then(setPublished);
+    db.loadBookings().then(setBookings);
+    db.loadSession().then(setSession);
+    const { data } = db.onAuthChange(()=>db.loadSession().then(setSession));
+    return ()=>{ try{data.subscription.unsubscribe();}catch{} };
+  },[]);
 
   // Wizard complete: drivers go to the live driver app, hosts go to the listing form.
   const onFinish=(role,profile)=>{
     if(role==='host'){ setHostProfile(profile||{}); setEditing(null); setView('list-spot'); }
     else { window.location.href='parking.html'; }
   };
-  const upsertListing=(l)=>setPublished(p=>{
-    const i=p.findIndex(x=>x.id===l.id);
-    if(i>=0){ const c=[...p]; c[i]=l; return c; }
-    return [l,...p];
-  });
-  const unpublish=(id)=>setPublished(p=>p.filter(x=>x.id!==id));
-  const addBooking=(b)=>setBookings(p=>[b,...p]);
-  const cancelBooking=(id)=>setBookings(p=>p.filter(x=>x.id!==id));
+  const applyUpsert=(p,l)=>{ const i=p.findIndex(x=>x.id===l.id); if(i>=0){ const c=[...p]; c[i]=l; return c; } return [l,...p]; };
+  const upsertListing=(l)=>{
+    if(REMOTE){ db.saveListing(l).then(saved=>setPublished(p=>applyUpsert(p,saved))); return; }
+    setPublished(p=>applyUpsert(p,l));
+  };
+  const unpublish=(id)=>{ if(REMOTE) db.deleteListing(id); setPublished(p=>p.filter(x=>x.id!==id)); };
+  const addBooking=(b)=>{
+    if(REMOTE){ db.saveBooking(b).then(saved=>setBookings(p=>[saved,...p])); return; }
+    setBookings(p=>[b,...p]);
+  };
+  const cancelBooking=(id)=>{ if(REMOTE) db.deleteBooking(id); setBookings(p=>p.filter(x=>x.id!==id)); };
 
-  const onLogin=(email)=>{
+  const onLogin=async(email)=>{
+    if(REMOTE){ await db.sendMagicLink(email); return; } // session arrives via onAuthChange
     setSession({email});
     setShowLogin(false);
     if(email===OWNER_EMAIL) setView('admin');
   };
-  const onLogout=()=>{ setSession(null); setView('home'); };
+  const onLogout=()=>{ if(REMOTE) db.signOut(); setSession(null); setView('home'); };
 
   return (
     <div>
