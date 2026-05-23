@@ -137,6 +137,56 @@ async function main() {
   const flexDir = await mob.locator('.cta-row').evaluate((el) => getComputedStyle(el).flexDirection);
   ok(flexDir === 'column', 'CTA row stacks (flex-direction: column) on mobile');
 
+  console.log('\nFLOW 10 — Host completes signup, lists a spot, it appears on home');
+  await page.goto(APP_URL);
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.waitForSelector('.hero h1');
+  await page.locator('.cta-row .btn-secondary').click(); // List My Parking Spot -> host
+  await page.waitForSelector('.wiz');
+  await page.locator('.role-card').nth(1).click(); // host -> advance
+  await page.waitForSelector('.oauth');
+  await page.locator('.oauth-btn').first().click(); // OAuth shortcut -> profile
+  await page.waitForSelector('#p-name');
+  await page.fill('#p-name', 'Jordan Vega');
+  await page.fill('#p-addr', 'Calle Falsa 123');
+  await page.fill('#p-price', '15');
+  await page.locator('.wiz-actions .btn-primary').click(); // Finish -> Done screen
+  await page.waitForSelector('.success');
+  await page.locator('.success .btn-primary').click(); // List Your First Spot -> list-spot form
+  await page.waitForSelector('.ls-form');
+  ok((await page.locator('#ls-addr').inputValue()) === 'Calle Falsa 123', 'listing form prefilled host address');
+  ok((await page.locator('#ls-price').inputValue()) === '15', 'listing form prefilled price');
+  await page.fill('#ls-title', 'Gated garage by the arena');
+  ok((await page.locator('.ls-preview .lc-title').textContent()).includes('Gated garage'), 'live preview updates as you type');
+  await page.locator('.ls-form .btn-primary', { hasText: 'Publish' }).click();
+  await page.waitForSelector('.ls-success');
+  ok((await page.locator('.ls-success .lc-title').textContent()).includes('Gated garage'), 'success screen shows the published card');
+  await page.locator('.ls-success .btn-primary', { hasText: 'View on home' }).click();
+  await page.waitForSelector('.listing-grid');
+  ok((await page.locator('.lc').count()) === 7, 'published listing added to home grid (7 cards)');
+  ok((await page.locator('.lc-mine').count()) === 1, 'published card shows "Your listing" badge');
+
+  console.log('\nFLOW 11 — Driver finish routes into the live driver app (parking.html)');
+  await page.goto(APP_URL);
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.waitForSelector('.hero h1');
+  await page.locator('.cta-row .btn-primary').first().click(); // Find a Parking Spot -> driver
+  await page.waitForSelector('.wiz');
+  await page.locator('.role-card').first().click(); // driver -> advance
+  await page.waitForSelector('.oauth');
+  await page.locator('.oauth-btn').first().click(); // OAuth shortcut -> profile
+  await page.waitForSelector('#p-name');
+  await page.fill('#p-name', 'Alex Driver');
+  await page.locator('.wiz-actions .btn-primary').click(); // Finish (driver)
+  await page.waitForSelector('.success');
+  await page.locator('.success .btn-primary').click(); // Find Parking Near Me -> parking.html
+  await page.waitForURL(/parking\.html$/);
+  ok(page.url().endsWith('parking.html'), 'driver routed to parking.html');
+  await page.waitForSelector('.logo');
+  ok((await page.locator('.logo').textContent()).includes('HAUS'), 'driver app (Parking Haus) loaded');
+
   await browser.close();
   if (errors.length) {
     console.error('\n❌ JS errors during run:\n  ' + errors.join('\n  '));

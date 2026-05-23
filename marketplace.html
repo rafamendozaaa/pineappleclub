@@ -230,9 +230,31 @@ button{font-family:var(--font-body);cursor:pointer;}
 .footer-inner{max-width:var(--maxw);margin:0 auto;padding:28px 20px;display:flex;align-items:center;gap:10px;color:var(--color-muted);font-size:13px;flex-wrap:wrap;}
 .footer .brand{font-size:16px;}
 
+/* ── "Your listing" badge on a listing card ── */
+.lc-mine{align-self:flex-start;font-size:11px;font-weight:700;color:var(--color-secondary-700);background:var(--color-secondary-50);border:1px solid var(--color-secondary);padding:2px 8px;border-radius:var(--radius-pill);}
+
+/* ── List-a-spot (host) ── */
+.ls{padding:30px 0 72px;}
+.ls-back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--color-muted);font-size:14px;font-weight:600;margin-bottom:14px;}
+.ls-back:hover{color:var(--color-text);}
+.ls-grid{display:grid;grid-template-columns:1fr 360px;gap:26px;align-items:start;}
+.ls-form{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:22px;}
+.ls-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.select{width:100%;border:1px solid var(--color-border);border-radius:var(--radius-button);padding:11px 12px;font-family:var(--font-body);font-size:15px;color:var(--color-text);background:var(--color-surface);outline:none;}
+.select:focus{border-color:var(--color-primary);box-shadow:0 0 0 3px var(--color-primary-50);}
+.am-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.am{display:flex;align-items:center;gap:8px;border:1px solid var(--color-border);border-radius:var(--radius-button);padding:10px 12px;font-size:14px;font-weight:600;color:var(--color-text);background:var(--color-surface);cursor:pointer;text-align:left;}
+.am.on{border-color:var(--color-secondary);background:var(--color-secondary-50);color:var(--color-secondary-700);}
+.am .am-chk{margin-left:auto;}
+.ls-preview{position:sticky;top:88px;}
+.pv-label{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-muted);margin-bottom:8px;}
+.ls-success{max-width:430px;margin:18px auto 0;text-align:center;}
+
 /* ── Responsive ── */
 @media(max-width:860px){
   .tiles,.listing-grid{grid-template-columns:1fr 1fr;}
+  .ls-grid{grid-template-columns:1fr;}
+  .ls-preview{position:static;max-width:360px;}
 }
 @media(max-width:640px){
   .hero h1{font-size:38px;}
@@ -245,6 +267,7 @@ button{font-family:var(--font-body);cursor:pointer;}
   .sb-field + .sb-field{border-left:none;border-top:1px solid var(--color-border);}
   .tiles,.listing-grid{grid-template-columns:1fr;}
   .role-cards{grid-template-columns:1fr;}
+  .ls-row2,.am-grid{grid-template-columns:1fr;}
   .hero h1{font-size:34px;}
 }
 </style>
@@ -335,13 +358,14 @@ function ListingCard({l}){
           ? <div className="lc-placeholder"><Icon name="image" size={28} label="Photo unavailable"/><span>No photo yet</span></div>
           : <img className="lc-img" src={l.img} alt={`${l.title} — ${l.loc}`} loading="lazy" onError={()=>setFailed(true)}/>}
         <div className="lc-scrim"/>
-        <div className="lc-rating"><StarSolid/> {l.rating.toFixed(1)}</div>
+        <div className="lc-rating">{typeof l.rating==='number' ? <><StarSolid/> {l.rating.toFixed(1)}</> : 'New'}</div>
         <div className="lc-price">${l.price}<small>{l.unit}</small></div>
         <button className={`lc-fav ${fav?'on':''}`} aria-label={fav?'Remove from saved':'Save listing'} aria-pressed={fav} onClick={()=>setFav(f=>!f)}>
           <Icon name="heart" size={18}/>
         </button>
       </div>
       <div className="lc-body">
+        {l.mine && <span className="lc-mine">Your listing</span>}
         <div className="lc-title">{l.title}</div>
         <div className="lc-row"><Icon name="mapPin" size={15}/> {l.loc}</div>
         <div className="lc-tags">
@@ -424,11 +448,12 @@ function Benefits(){
   );
 }
 
-function FeaturedListings(){
+function FeaturedListings({extra=[]}){
+  const all=[...extra,...LISTINGS];
   return (
     <section className="section listings">
       <div className="sec-head"><h2>Spots near tonight's venue</h2><p>Verified hosts, transparent prices, instant booking.</p></div>
-      <div className="listing-grid">{LISTINGS.map(l=> <ListingCard key={l.id} l={l}/>)}</div>
+      <div className="listing-grid">{all.map(l=> <ListingCard key={l.id} l={l}/>)}</div>
     </section>
   );
 }
@@ -475,7 +500,7 @@ function SignupWizard({initialRole,onClose,onFinish}){
 
   const pickRole=(r)=>{ setRole(r); setStep(1); }; // auto-advance on selection
   const back=()=>setStep(s=>Math.max(0,s-1));
-  const finishStep=()=>{ try{localStorage.removeItem('mkt_signup');}catch{} onFinish&&onFinish(role); onClose(); };
+  const finishStep=()=>{ try{localStorage.removeItem('mkt_signup');}catch{} onFinish&&onFinish(role, profile); onClose(); };
 
   const profileValid = role==='host'
     ? profile.name.trim() && profile.address.trim() && profile.price.trim()
@@ -697,6 +722,134 @@ function StyleGuide(){
   );
 }
 
+/* ───────── List a spot (host) ───────── */
+const AMENITIES=[
+  ['shield','Gated'],['zap','EV charging'],['clock','24h access'],
+  ['key','Self-park'],['car','Big vehicles'],['sparkles','Covered'],
+];
+const SPOT_TYPES=['Driveway','Garage','Parking lot','Rooftop','Underground'];
+const PHOTO_PRESETS=[['#1A6BF0','#0EA5E9'],['#F59E0B','#F97316'],['#16A34A','#0EA5E9'],['#7C3AED','#1A6BF0']];
+const amenityLabel=(ic)=>(AMENITIES.find(a=>a[0]===ic)||[ic,ic])[1];
+
+function ListSpotView({hostProfile={},onPublish,onHome}){
+  const [form,setForm]=useState({
+    title:'', address:hostProfile.address||'', price:hostProfile.price||'',
+    unit:'/day', type:'Driveway', photo:'',
+    host:((hostProfile.name||'You').trim().split(/\s+/)[0])||'You',
+  });
+  const [amenities,setAmenities]=useState(['shield','zap']);
+  const [published,setPublished]=useState(null);
+  const set=(k)=>(e)=>setForm(f=>({...f,[k]:e.target.value}));
+  const toggleAm=(ic)=>setAmenities(a=>a.includes(ic)?a.filter(x=>x!==ic):[...a,ic]);
+  const valid=form.title.trim()&&form.address.trim()&&String(form.price).trim()&&Number(form.price)>0;
+
+  const preview={
+    id:'preview',
+    title:form.title||'Your spot title',
+    loc:form.address||'Address appears here',
+    price:Number(form.price)||0,
+    unit:form.unit,
+    rating:null,
+    host:form.host||'You',
+    tags:amenities.slice(0,3).map(ic=>[ic,amenityLabel(ic)]),
+    img:form.photo||gradientPhoto(...PHOTO_PRESETS[form.title.length%PHOTO_PRESETS.length]),
+    mine:true,
+  };
+
+  const publish=()=>{
+    if(!valid) return;
+    const listing={...preview,id:'L'+Date.now()};
+    onPublish(listing);
+    setPublished(listing);
+    window.scrollTo(0,0);
+  };
+
+  if(published){
+    return (
+      <section className="section ls">
+        <div className="ls-success">
+          <div className="success-badge"><Icon name="check" size={36} label="Published"/></div>
+          <h3 style={{fontSize:26,fontWeight:800,marginBottom:6}}>Your spot is live!</h3>
+          <p style={{color:'var(--color-muted)',marginBottom:18}}>Drivers near the venue can book it now. Here's how it looks:</p>
+          <div style={{maxWidth:320,margin:'0 auto 20px'}}><ListingCard l={published}/></div>
+          <div className="btn-row" style={{display:'flex',gap:10}}>
+            <button className="btn btn-outline" style={{flex:1}} onClick={()=>{setPublished(null);setForm(f=>({...f,title:'',photo:''}));}}>List another</button>
+            <button className="btn btn-primary" style={{flex:1}} onClick={onHome}>View on home</button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="section ls">
+      <button className="ls-back" onClick={onHome}><Icon name="arrowLeft" size={16}/> Back to home</button>
+      <div className="sec-head" style={{textAlign:'left',marginBottom:18}}>
+        <h2 style={{fontSize:30}}>List your spot</h2>
+        <p>Publish in under a minute — preview updates as you type.</p>
+      </div>
+      <div className="ls-grid">
+        <div className="ls-form">
+          <div className="field">
+            <label htmlFor="ls-title">Listing title</label>
+            <input id="ls-title" className="input" placeholder="Covered garage near the stadium" value={form.title} onChange={set('title')} maxLength={60}/>
+          </div>
+          <div className="field">
+            <label htmlFor="ls-addr">Address</label>
+            <input id="ls-addr" className="input" placeholder="Street, number, neighbourhood" value={form.address} onChange={set('address')}/>
+          </div>
+          <div className="ls-row2">
+            <div className="field">
+              <label htmlFor="ls-price">Price (USD)</label>
+              <input id="ls-price" className="input" type="number" min="1" placeholder="12" value={form.price} onChange={set('price')}/>
+            </div>
+            <div className="field">
+              <label htmlFor="ls-unit">Rate</label>
+              <select id="ls-unit" className="select" value={form.unit} onChange={set('unit')}>
+                <option value="/day">per day</option>
+                <option value="/event">per event</option>
+                <option value="/hr">per hour</option>
+              </select>
+            </div>
+          </div>
+          <div className="field">
+            <label htmlFor="ls-type">Spot type</label>
+            <select id="ls-type" className="select" value={form.type} onChange={set('type')}>
+              {SPOT_TYPES.map(t=> <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="ls-photo">Photo URL <span className="opt">(optional)</span></label>
+            <input id="ls-photo" className="input" placeholder="https://… (leave blank for a placeholder)" value={form.photo} onChange={set('photo')}/>
+          </div>
+          <div className="field">
+            <label>Amenities</label>
+            <div className="am-grid">
+              {AMENITIES.map(([ic,t])=>{
+                const on=amenities.includes(ic);
+                return (
+                  <button type="button" key={ic} className={`am ${on?'on':''}`} aria-pressed={on} onClick={()=>toggleAm(ic)}>
+                    <Icon name={ic} size={16}/> {t}
+                    {on && <span className="am-chk"><Icon name="check" size={16}/></span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <button className="btn btn-primary btn-block" style={{height:50,fontSize:16,marginTop:6}} disabled={!valid} onClick={publish}>
+            <Icon name="check" size={20}/> Publish listing
+          </button>
+        </div>
+
+        <div className="ls-preview">
+          <div className="pv-label">Live preview</div>
+          <ListingCard l={preview}/>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ───────── App shell ───────── */
 function Nav({onSignup,onView}){
   return (
@@ -720,9 +873,19 @@ function Nav({onSignup,onView}){
 function App(){
   const [view,setView]=useState('home');
   const [signup,setSignup]=useState(null); // {role} | null
+  const [hostProfile,setHostProfile]=useState({});
+  const [published,setPublished]=useState(()=>{try{return JSON.parse(localStorage.getItem('mkt_listings'))||[];}catch{return [];}});
   const openSignup=(role)=>setSignup({role});
 
+  useEffect(()=>{try{localStorage.setItem('mkt_listings',JSON.stringify(published));}catch{}},[published]);
   useEffect(()=>{ if(view!=='home') window.scrollTo(0,0); },[view]);
+
+  // Wizard complete: drivers go to the live driver app, hosts go to the listing form.
+  const onFinish=(role,profile)=>{
+    if(role==='host'){ setHostProfile(profile||{}); setView('list-spot'); }
+    else { window.location.href='parking.html'; }
+  };
+  const addListing=(l)=>setPublished(p=>[l,...p]);
 
   return (
     <div>
@@ -730,16 +893,17 @@ function App(){
       {view==='home' && <main>
         <Hero onSignup={openSignup}/>
         <Benefits/>
-        <FeaturedListings/>
+        <FeaturedListings extra={published}/>
       </main>}
       {view==='styleguide' && <main><StyleGuide/></main>}
+      {view==='list-spot' && <main><ListSpotView hostProfile={hostProfile} onPublish={addListing} onHome={()=>setView('home')}/></main>}
       <footer className="footer">
         <div className="footer-inner">
           <div className="brand"><span className="blob" style={{width:24,height:24}}><Icon name="car" size={15}/></span> Parking<span>Haus</span></div>
           <span style={{marginLeft:'auto'}}>© 2026 Parking Haus · Park smart, earn more.</span>
         </div>
       </footer>
-      {signup && <SignupWizard initialRole={signup.role} onClose={()=>setSignup(null)} onFinish={()=>setView('home')}/>}
+      {signup && <SignupWizard initialRole={signup.role} onClose={()=>setSignup(null)} onFinish={onFinish}/>}
     </div>
   );
 }
