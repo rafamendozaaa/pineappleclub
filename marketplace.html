@@ -29,6 +29,7 @@
   --color-success:#16A34A;
   --color-danger:#DC2626;
   --color-on-primary:#FFFFFF;
+  --color-on-dark:#FFFFFF;          /* text over images / dark scrims / colored badges */
   --overlay-scrim:rgba(0,0,0,0.45);            /* text-over-image overlay (>= 0.4) */
   --overlay-scrim-strong:rgba(0,0,0,0.62);
   --radius-card:12px;
@@ -127,9 +128,9 @@ button{font-family:var(--font-body);cursor:pointer;}
 .lc-placeholder span{font-size:12px;font-weight:600;}
 /* bottom scrim so any text over the image stays >=4.5:1 contrast */
 .lc-scrim{position:absolute;left:0;right:0;bottom:0;height:62%;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,var(--overlay-scrim-strong) 100%);}
-.lc-price{position:absolute;left:12px;bottom:12px;color:#fff;font-family:var(--font-heading);font-weight:700;font-size:18px;text-shadow:0 1px 2px rgba(0,0,0,.5);}
+.lc-price{position:absolute;left:12px;bottom:12px;color:var(--color-on-dark);font-family:var(--font-heading);font-weight:700;font-size:18px;text-shadow:0 1px 2px rgba(0,0,0,.5);}
 .lc-price small{font-family:var(--font-body);font-weight:500;font-size:12px;opacity:.92;}
-.lc-rating{position:absolute;right:12px;top:12px;display:flex;align-items:center;gap:4px;background:var(--overlay-scrim);color:#fff;padding:4px 9px;border-radius:var(--radius-pill);font-size:12px;font-weight:700;backdrop-filter:blur(4px);}
+.lc-rating{position:absolute;right:12px;top:12px;display:flex;align-items:center;gap:4px;background:var(--overlay-scrim);color:var(--color-on-dark);padding:4px 9px;border-radius:var(--radius-pill);font-size:12px;font-weight:700;backdrop-filter:blur(4px);}
 .lc-rating svg{color:var(--color-secondary);}
 .lc-fav{position:absolute;right:12px;bottom:12px;width:36px;height:36px;border-radius:var(--radius-pill);background:var(--color-surface);border:none;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-card);color:var(--color-text);}
 .lc-fav.on{color:var(--color-danger);}
@@ -201,7 +202,7 @@ button{font-family:var(--font-body);cursor:pointer;}
 
 /* success */
 .success{text-align:center;padding:8px 0 4px;}
-.success-badge{width:72px;height:72px;border-radius:var(--radius-pill);background:var(--color-success);color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
+.success-badge{width:72px;height:72px;border-radius:var(--radius-pill);background:var(--color-success);color:var(--color-on-dark);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
 .success h3{font-size:24px;font-weight:800;margin-bottom:6px;}
 .success p{color:var(--color-muted);margin-bottom:22px;}
 
