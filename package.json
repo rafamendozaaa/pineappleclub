@@ -4,7 +4,9 @@
   "private": true,
   "description": "Static single-file web apps (Pineapple Open, Parking Hub) with Playwright flow tests.",
   "scripts": {
-    "test": "node tests/parking.flows.spec.js",
+    "test": "node tests/parking.flows.spec.js && node tests/marketplace.flows.spec.js",
+    "test:parking": "node tests/parking.flows.spec.js",
+    "test:marketplace": "node tests/marketplace.flows.spec.js",
     "test:browsers": "playwright install chromium"
   },
   "devDependencies": {

@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Parking Hub — Park Smart. Earn More.</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+/* ─────────────────────────────────────────────────────────────
+   GLOBAL DESIGN TOKENS — single source of truth.
+   Every component references these via var(); no raw hex in components.
+   ───────────────────────────────────────────────────────────── */
+:root{
+  --color-primary:#1A6BF0;          /* Driver CTA */
+  --color-primary-700:#1557C4;      /* Driver CTA hover */
+  --color-primary-50:#EAF2FE;       /* Driver tint */
+  --color-secondary:#F59E0B;        /* Host CTA */
+  --color-secondary-700:#D97F06;    /* Host CTA hover */
+  --color-secondary-50:#FEF6E7;     /* Host tint */
+  --color-bg:#F8FAFC;
+  --color-surface:#FFFFFF;
+  --color-text:#0F172A;
+  --color-muted:#64748B;
+  --color-border:#E2E8F0;
+  --color-success:#16A34A;
+  --color-danger:#DC2626;
+  --color-on-primary:#FFFFFF;
+  --overlay-scrim:rgba(0,0,0,0.45);            /* text-over-image overlay (>= 0.4) */
+  --overlay-scrim-strong:rgba(0,0,0,0.62);
+  --radius-card:12px;
+  --radius-button:8px;
+  --radius-pill:999px;
+  --shadow-card:0 2px 12px rgba(0,0,0,0.08);
+  --shadow-pop:0 16px 48px rgba(15,23,42,0.18);
+  --font-heading:'Sora',sans-serif;
+  --font-body:'DM Sans',sans-serif;
+  --maxw:1080px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body,#root{min-height:100vh;}
+body{background:var(--color-bg);color:var(--color-text);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+h1,h2,h3,h4{font-family:var(--font-heading);color:var(--color-text);line-height:1.1;}
+button{font-family:var(--font-body);cursor:pointer;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:var(--color-border);border-radius:var(--radius-pill);}
+
+/* ── Buttons (shared across all pages) ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:var(--radius-button);font-weight:600;font-size:15px;padding:10px 16px;transition:background .15s,border-color .15s,transform .05s;text-decoration:none;color:var(--color-text);}
+.btn:active{transform:translateY(1px);}
+.btn-primary{background:var(--color-primary);color:var(--color-on-primary);}
+.btn-primary:hover{background:var(--color-primary-700);}
+.btn-secondary{background:var(--color-secondary);color:var(--color-text);}
+.btn-secondary:hover{background:var(--color-secondary-700);}
+.btn-ghost{background:transparent;color:var(--color-text);}
+.btn-ghost:hover{background:var(--color-border);}
+.btn-outline{background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-border);}
+.btn-outline:hover{border-color:var(--color-muted);}
+.btn-sm{padding:8px 14px;font-size:14px;}
+.btn-block{width:100%;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+/* Hero CTAs: min 200x56 on desktop */
+.btn-cta{min-width:200px;height:56px;font-size:16px;font-weight:700;border-radius:var(--radius-button);}
+
+/* ── Nav ── */
+.nav{position:sticky;top:0;z-index:50;background:var(--color-surface);border-bottom:1px solid var(--color-border);}
+.nav-inner{max-width:var(--maxw);margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:18px;}
+.brand{display:flex;align-items:center;gap:8px;font-family:var(--font-heading);font-weight:800;font-size:19px;color:var(--color-text);background:none;border:none;}
+.brand span{color:var(--color-primary);}
+.brand .blob{width:30px;height:30px;border-radius:9px;background:var(--color-primary);color:var(--color-on-primary);display:flex;align-items:center;justify-content:center;}
+.nav-links{display:flex;gap:6px;margin-left:8px;}
+.nav-links button{background:none;border:none;color:var(--color-muted);font-size:15px;font-weight:500;padding:8px 10px;border-radius:var(--radius-button);}
+.nav-links button:hover{color:var(--color-text);background:var(--color-bg);}
+.nav-cta{margin-left:auto;display:flex;gap:8px;align-items:center;}
+
+/* ── Layout ── */
+.section{max-width:var(--maxw);margin:0 auto;padding:0 20px;}
+.eyebrow{font-family:var(--font-heading);font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-primary);}
+
+/* ── Hero (max 3 visual elements above the fold: copy / CTAs / search) ── */
+.hero{background:linear-gradient(180deg,var(--color-surface) 0%,var(--color-bg) 100%);border-bottom:1px solid var(--color-border);}
+.hero-inner{max-width:var(--maxw);margin:0 auto;padding:64px 20px 56px;text-align:center;}
+.hero h1{font-size:54px;font-weight:800;letter-spacing:-.02em;margin-bottom:14px;}
+.hero h1 span{color:var(--color-primary);}
+.hero-sub{font-size:18px;color:var(--color-muted);max-width:620px;margin:0 auto 30px;}
+.cta-row{display:flex;gap:14px;justify-content:center;margin-bottom:26px;flex-wrap:wrap;}
+.searchbar{display:flex;gap:8px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:8px;max-width:760px;margin:0 auto;align-items:center;}
+.sb-field{display:flex;align-items:center;gap:8px;padding:8px 10px;flex:1;min-width:0;border-radius:var(--radius-button);}
+.sb-field + .sb-field{border-left:1px solid var(--color-border);}
+.sb-field input{border:none;outline:none;font-family:var(--font-body);font-size:14px;color:var(--color-text);background:transparent;width:100%;min-width:0;}
+.sb-field input::placeholder{color:var(--color-muted);}
+.sb-field svg{color:var(--color-muted);flex-shrink:0;}
+
+/* ── Benefit tiles ── */
+.benefits{padding:56px 0;}
+.bn-group + .bn-group{margin-top:38px;}
+.bn-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.bn-head h3{font-size:22px;font-weight:700;}
+.bn-pill{font-size:12px;font-weight:700;padding:4px 10px;border-radius:var(--radius-pill);}
+.bn-pill.driver{background:var(--color-primary-50);color:var(--color-primary-700);}
+.bn-pill.host{background:var(--color-secondary-50);color:var(--color-secondary-700);}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.tile{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-card);padding:20px;box-shadow:var(--shadow-card);}
+.tile-ic{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;}
+.tile-ic.driver{background:var(--color-primary-50);color:var(--color-primary);}
+.tile-ic.host{background:var(--color-secondary-50);color:var(--color-secondary-700);}
+.tile h4{font-size:16px;font-weight:700;margin-bottom:5px;}
+.tile p{font-size:14px;color:var(--color-muted);}
+
+/* ── Section heading ── */
+.sec-head{text-align:center;margin-bottom:26px;}
+.sec-head h2{font-size:32px;font-weight:800;letter-spacing:-.01em;margin-bottom:6px;}
+.sec-head p{color:var(--color-muted);font-size:16px;}
+
+/* ── Listing cards ── */
+.listings{padding:8px 0 64px;}
+.listing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+.lc{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-card);box-shadow:var(--shadow-card);overflow:hidden;display:flex;flex-direction:column;}
+/* image wrapper: fixed aspect, never collapses, clips overflow */
+.lc-imgwrap{position:relative;width:100%;aspect-ratio:16/9;min-height:180px;overflow:hidden;background:var(--color-border);}
+.lc-img{width:100%;height:100%;object-fit:cover;display:block;}
+.lc-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:var(--color-border);color:var(--color-muted);}
+.lc-placeholder span{font-size:12px;font-weight:600;}
+/* bottom scrim so any text over the image stays >=4.5:1 contrast */
+.lc-scrim{position:absolute;left:0;right:0;bottom:0;height:62%;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,var(--overlay-scrim-strong) 100%);}
+.lc-price{position:absolute;left:12px;bottom:12px;color:#fff;font-family:var(--font-heading);font-weight:700;font-size:18px;text-shadow:0 1px 2px rgba(0,0,0,.5);}
+.lc-price small{font-family:var(--font-body);font-weight:500;font-size:12px;opacity:.92;}
+.lc-rating{position:absolute;right:12px;top:12px;display:flex;align-items:center;gap:4px;background:var(--overlay-scrim);color:#fff;padding:4px 9px;border-radius:var(--radius-pill);font-size:12px;font-weight:700;backdrop-filter:blur(4px);}
+.lc-rating svg{color:var(--color-secondary);}
+.lc-fav{position:absolute;right:12px;bottom:12px;width:36px;height:36px;border-radius:var(--radius-pill);background:var(--color-surface);border:none;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-card);color:var(--color-text);}
+.lc-fav.on{color:var(--color-danger);}
+.lc-body{padding:14px;display:flex;flex-direction:column;gap:8px;flex:1;}
+.lc-title{font-family:var(--font-heading);font-size:16px;font-weight:700;}
+.lc-row{display:flex;align-items:center;gap:6px;color:var(--color-muted);font-size:13px;}
+.lc-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px;}
+.lc-tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);padding:3px 8px;border-radius:var(--radius-pill);}
+.lc-foot{display:flex;align-items:center;gap:8px;border-top:1px solid var(--color-border);padding-top:10px;margin-top:auto;}
+.lc-host{width:28px;height:28px;border-radius:var(--radius-pill);background:var(--color-primary-50);color:var(--color-primary-700);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;}
+.lc-host-name{font-size:13px;color:var(--color-muted);}
+
+/* ── Sign-up wizard ── */
+.wiz-scrim{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px;}
+.wiz{background:var(--color-surface);border-radius:var(--radius-card);box-shadow:var(--shadow-pop);width:100%;max-width:520px;overflow:hidden;animation:wpop .2s ease;}
+@keyframes wpop{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.wiz-top{padding:16px 20px;border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:12px;}
+.wiz-close{margin-left:auto;width:32px;height:32px;border-radius:var(--radius-button);border:none;background:var(--color-bg);color:var(--color-muted);display:flex;align-items:center;justify-content:center;}
+.wiz-close:hover{color:var(--color-text);}
+/* progress: Role -> Account -> Profile -> Done */
+.steps{display:flex;align-items:center;gap:0;padding:16px 20px 4px;}
+.step{display:flex;align-items:center;gap:8px;flex:1;}
+.step:last-child{flex:0;}
+.step-dot{width:26px;height:26px;border-radius:var(--radius-pill);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;border:2px solid var(--color-border);background:var(--color-surface);color:var(--color-muted);}
+.step.active .step-dot{border-color:var(--color-primary);color:var(--color-primary);}
+.step.done .step-dot{border-color:var(--color-primary);background:var(--color-primary);color:var(--color-on-primary);}
+.step-label{font-size:12px;font-weight:600;color:var(--color-muted);white-space:nowrap;}
+.step.active .step-label,.step.done .step-label{color:var(--color-text);}
+.step-line{flex:1;height:2px;background:var(--color-border);margin:0 8px;border-radius:2px;}
+.step.done .step-line{background:var(--color-primary);}
+.wiz-body{padding:20px 24px 24px;}
+.wiz-h{font-family:var(--font-heading);font-size:22px;font-weight:700;margin-bottom:4px;}
+.wiz-sub{color:var(--color-muted);font-size:14px;margin-bottom:18px;}
+
+/* role cards */
+.role-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.role-card{text-align:left;background:var(--color-surface);border:2px solid var(--color-border);border-radius:var(--radius-card);padding:18px;transition:border-color .15s,box-shadow .15s;}
+.role-card:hover{border-color:var(--color-muted);}
+.role-card.sel-driver{border-color:var(--color-primary);box-shadow:0 0 0 3px var(--color-primary-50);}
+.role-card.sel-host{border-color:var(--color-secondary);box-shadow:0 0 0 3px var(--color-secondary-50);}
+.role-illus{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;}
+.role-illus.driver{background:var(--color-primary-50);color:var(--color-primary);}
+.role-illus.host{background:var(--color-secondary-50);color:var(--color-secondary-700);}
+.role-card h4{font-size:16px;font-weight:700;margin-bottom:4px;}
+.role-card p{font-size:13px;color:var(--color-muted);}
+
+/* forms */
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;}
+.field label .opt{color:var(--color-muted);font-weight:500;}
+.input{width:100%;border:1px solid var(--color-border);border-radius:var(--radius-button);padding:11px 12px;font-family:var(--font-body);font-size:15px;color:var(--color-text);background:var(--color-surface);outline:none;}
+.input:focus{border-color:var(--color-primary);box-shadow:0 0 0 3px var(--color-primary-50);}
+.input.invalid{border-color:var(--color-danger);}
+.hint{font-size:12px;margin-top:5px;display:flex;align-items:center;gap:5px;}
+.hint.err{color:var(--color-danger);}
+.hint.ok{color:var(--color-success);}
+.hint.muted{color:var(--color-muted);}
+/* password strength meter */
+.pw-meter{display:flex;gap:4px;margin-top:8px;}
+.pw-seg{height:5px;flex:1;border-radius:var(--radius-pill);background:var(--color-border);transition:background .2s;}
+.pw-label{font-size:12px;font-weight:600;margin-top:5px;}
+.oauth{display:flex;flex-direction:column;gap:10px;margin-bottom:6px;}
+.oauth-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:46px;border:1px solid var(--color-border);border-radius:var(--radius-button);background:var(--color-surface);font-weight:600;font-size:15px;color:var(--color-text);}
+.oauth-btn:hover{background:var(--color-bg);}
+.divider{display:flex;align-items:center;gap:12px;color:var(--color-muted);font-size:12px;margin:16px 0;}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--color-border);}
+.wiz-actions{display:flex;gap:10px;margin-top:20px;}
+.wiz-actions .btn{flex:1;height:46px;}
+
+/* success */
+.success{text-align:center;padding:8px 0 4px;}
+.success-badge{width:72px;height:72px;border-radius:var(--radius-pill);background:var(--color-success);color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
+.success h3{font-size:24px;font-weight:800;margin-bottom:6px;}
+.success p{color:var(--color-muted);margin-bottom:22px;}
+
+/* ── Style guide ── */
+.sg{padding:40px 0 80px;}
+.sg-block{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:22px;margin-bottom:18px;}
+.sg-block h3{font-size:18px;font-weight:700;margin-bottom:4px;}
+.sg-block .sg-desc{color:var(--color-muted);font-size:13px;margin-bottom:16px;}
+.sw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+.sw{border:1px solid var(--color-border);border-radius:var(--radius-button);overflow:hidden;}
+.sw-color{height:64px;}
+.sw-meta{padding:8px 10px;}
+.sw-name{font-size:13px;font-weight:700;}
+.sw-val{font-size:12px;color:var(--color-muted);font-family:ui-monospace,monospace;}
+.radii{display:flex;gap:16px;flex-wrap:wrap;}
+.radii .box{width:90px;height:64px;background:var(--color-primary-50);border:1px solid var(--color-primary);display:flex;align-items:flex-end;justify-content:center;padding:6px;font-size:11px;font-weight:700;color:var(--color-primary-700);}
+.icon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;}
+.icon-cell{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border:1px solid var(--color-border);border-radius:var(--radius-button);color:var(--color-text);}
+.icon-cell span{font-size:11px;color:var(--color-muted);font-family:ui-monospace,monospace;}
+.density-row{display:flex;align-items:flex-end;gap:22px;color:var(--color-text);}
+.density-row .d{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:var(--color-muted);}
+.type-sample p{margin-bottom:8px;}
+.btn-demo{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+
+/* ── Footer ── */
+.footer{border-top:1px solid var(--color-border);background:var(--color-surface);}
+.footer-inner{max-width:var(--maxw);margin:0 auto;padding:28px 20px;display:flex;align-items:center;gap:10px;color:var(--color-muted);font-size:13px;flex-wrap:wrap;}
+.footer .brand{font-size:16px;}
+
+/* ── Responsive ── */
+@media(max-width:860px){
+  .tiles,.listing-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:640px){
+  .hero h1{font-size:38px;}
+  .hero-sub{font-size:16px;}
+  .nav-links{display:none;}
+  /* CTAs stack vertically, full-width on mobile */
+  .cta-row{flex-direction:column;align-items:stretch;}
+  .btn-cta{width:100%;}
+  .searchbar{flex-direction:column;align-items:stretch;}
+  .sb-field + .sb-field{border-left:none;border-top:1px solid var(--color-border);}
+  .tiles,.listing-grid{grid-template-columns:1fr;}
+  .role-cards{grid-template-columns:1fr;}
+  .hero h1{font-size:34px;}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useMemo}=React;
+
+/* ───────── Icons — single library (Lucide line icons), fixed px sizing ─────────
+   Rendered as inline SVG with explicit width/height (never font-size scaled).
+   role/aria are set so icon-only buttons stay accessible. SVG = crisp at 1x/1.5x/2x. */
+const ICONS={
+  search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  mapPin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+  calendar:'<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  car:'<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.6-1.6-1.4-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.4-.4-1-.7-1.6-.7H5.5c-.6 0-1.1.4-1.4.9L2.7 10A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/>',
+  home:'<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+  shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
+  zap:'<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/>',
+  wallet:'<path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h16a1 1 0 0 1 1 1v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5"/><path d="M18 12h.01"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  arrowLeft:'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  star:'<path d="M12 2l3 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.9 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  mail:'<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m2 7 10 6 10-6"/>',
+  lock:'<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  image:'<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L5 21"/>',
+  heart:'<path d="M19 14c1.4-1.4 3-3.2 3-5.5A4.5 4.5 0 0 0 12 5 4.5 4.5 0 0 0 2 8.5C2 10.8 3.6 12.6 5 14l7 7Z"/>',
+  dollar:'<path d="M12 2v20"/><path d="M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  sparkles:'<path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3Z"/>',
+  key:'<circle cx="7.5" cy="15.5" r="3.5"/><path d="m10 13 9-9"/><path d="m16 7 2 2"/>',
+  close:'<path d="M18 6 6 18M6 6l12 12"/>',
+};
+function Icon({name,size=20,label,color}){
+  const inner=ICONS[name]||'';
+  const aria=label?{role:'img','aria-label':label}:{'aria-hidden':'true',focusable:'false'};
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color||'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      style={{display:'block',flexShrink:0}} {...aria}
+      dangerouslySetInnerHTML={{__html:inner}}/>
+  );
+}
+// Solid star for ratings
+function StarSolid({size=14}){
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{display:'block'}}>
+    <path d="M12 2l3 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.9 21l1.2-6.8-5-4.9 6.9-1L12 2Z"/></svg>;
+}
+// Brand marks for OAuth (brand assets, intentionally outside the UI icon set)
+function GoogleMark(){return <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.8H9v3.5h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.6z"/><path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8H.9v2.3A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.9 10.7a5.4 5.4 0 0 1 0-3.4V5H.9a9 9 0 0 0 0 8l3-2.3z"/><path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 .9 5l3 2.3C4.6 5.2 6.6 3.6 9 3.6z"/></svg>;}
+function AppleMark(){return <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.9c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.9-1.4-.1-2.8.8-3.5.8-.7 0-1.9-.8-3-.8-1.6 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.3 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-1 2.8-2.1c.6-.9.9-1.7 1-1.8-.1 0-2.4-1-2.4-3.8zM14.3 5.9c.6-.8 1-1.8.9-2.9-.9 0-2 .6-2.6 1.4-.6.6-1.1 1.7-1 2.7 1 0 2-.5 2.7-1.2z"/></svg>;}
+
+const TOKENS=[
+  {name:'--color-primary',val:'#1A6BF0',note:'Driver CTA'},
+  {name:'--color-secondary',val:'#F59E0B',note:'Host CTA'},
+  {name:'--color-bg',val:'#F8FAFC',note:'Page background'},
+  {name:'--color-text',val:'#0F172A',note:'Body text'},
+  {name:'--color-border',val:'#E2E8F0',note:'Borders'},
+  {name:'--color-muted',val:'#64748B',note:'Secondary text'},
+  {name:'--color-success',val:'#16A34A',note:'Valid / done'},
+  {name:'--color-danger',val:'#DC2626',note:'Errors'},
+];
+
+/* gradient "photo" data-URI so cards render fully offline; real URLs work online too */
+function gradientPhoto(a,b){
+  const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='400' height='225'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='${a}'/><stop offset='1' stop-color='${b}'/></linearGradient></defs><rect width='400' height='225' fill='url(#g)'/><rect x='40' y='150' width='320' height='8' rx='4' fill='rgba(255,255,255,0.25)'/><rect x='40' y='168' width='220' height='8' rx='4' fill='rgba(255,255,255,0.18)'/></svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+const LISTINGS=[
+  {id:1,title:'Covered garage by the stadium',loc:'Av. Corrientes 1200',price:18,unit:'/event',rating:4.9,host:'María',tags:[['shield','Gated'],['zap','EV']],img:gradientPhoto('#1A6BF0','#0EA5E9')},
+  {id:2,title:'Private driveway — 2 min walk',loc:'Honduras 5400, Palermo',price:12,unit:'/day',rating:4.8,host:'Diego',tags:[['key','Self-park'],['clock','24h']],img:gradientPhoto('#F59E0B','#F97316')},
+  {id:3,title:'Secure lot, valet on match days',loc:'Olga Cossettini 850',price:25,unit:'/event',rating:5.0,host:'Lucía',tags:[['shield','Guarded'],['car','SUV ok']],img:''/* intentionally broken -> placeholder fallback */},
+  {id:4,title:'Rooftop spot with great views',loc:'Cabildo 3200, Belgrano',price:9,unit:'/day',rating:4.6,host:'Tomás',tags:[['sparkles','New'],['zap','EV']],img:gradientPhoto('#16A34A','#0EA5E9')},
+  {id:5,title:'Underground space near subte',loc:'Rivadavia 5100, Caballito',price:7,unit:'/day',rating:4.7,host:'Sofía',tags:[['key','Self-park'],['clock','24h']],img:gradientPhoto('#7C3AED','#1A6BF0')},
+  {id:6,title:'Driveway w/ overnight allowed',loc:'Junín 1900, Recoleta',price:14,unit:'/day',rating:4.9,host:'Pablo',tags:[['shield','Gated'],['car','Van ok']],img:gradientPhoto('#0F172A','#475569')},
+];
+
+/* ───────── Listing card (bug-free image + text) ───────── */
+function ListingCard({l}){
+  const [failed,setFailed]=useState(!l.img);
+  const [fav,setFav]=useState(false);
+  return (
+    <article className="lc">
+      <div className="lc-imgwrap">
+        {failed
+          ? <div className="lc-placeholder"><Icon name="image" size={28} label="Photo unavailable"/><span>No photo yet</span></div>
+          : <img className="lc-img" src={l.img} alt={`${l.title} — ${l.loc}`} loading="lazy" onError={()=>setFailed(true)}/>}
+        <div className="lc-scrim"/>
+        <div className="lc-rating"><StarSolid/> {l.rating.toFixed(1)}</div>
+        <div className="lc-price">${l.price}<small>{l.unit}</small></div>
+        <button className={`lc-fav ${fav?'on':''}`} aria-label={fav?'Remove from saved':'Save listing'} aria-pressed={fav} onClick={()=>setFav(f=>!f)}>
+          <Icon name="heart" size={18}/>
+        </button>
+      </div>
+      <div className="lc-body">
+        <div className="lc-title">{l.title}</div>
+        <div className="lc-row"><Icon name="mapPin" size={15}/> {l.loc}</div>
+        <div className="lc-tags">
+          {l.tags.map(([ic,t])=> <span className="lc-tag" key={t}><Icon name={ic} size={13}/> {t}</span>)}
+        </div>
+        <div className="lc-foot">
+          <div className="lc-host">{l.host[0]}</div>
+          <div className="lc-host-name">Hosted by {l.host}</div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/* ───────── Hero ───────── */
+function Hero({onSignup}){
+  return (
+    <section className="hero">
+      <div className="hero-inner">
+        {/* Above the fold = 3 elements: copy, CTA pair, search bar */}
+        <div className="hero-copy">
+          <h1>Park Smart. <span>Earn More.</span></h1>
+          <p className="hero-sub">Drivers and fans book a guaranteed spot near the venue in seconds — hosts turn an empty driveway into income.</p>
+        </div>
+        <div className="cta-row">
+          <button className="btn btn-cta btn-primary" onClick={()=>onSignup('driver')}>
+            <Icon name="search" size={20}/> Find a Parking Spot
+          </button>
+          <button className="btn btn-cta btn-secondary" onClick={()=>onSignup('host')}>
+            <Icon name="home" size={20}/> List My Parking Spot
+          </button>
+        </div>
+        <form className="searchbar" onSubmit={(e)=>{e.preventDefault();onSignup('driver');}}>
+          <div className="sb-field"><Icon name="mapPin" size={18}/><input placeholder="Where are you headed?" aria-label="Location"/></div>
+          <div className="sb-field"><Icon name="calendar" size={18}/><input placeholder="Date" aria-label="Date" onFocus={(e)=>e.target.type='date'} onBlur={(e)=>{if(!e.target.value)e.target.type='text';}}/></div>
+          <div className="sb-field"><Icon name="clock" size={18}/><input placeholder="Time" aria-label="Time" onFocus={(e)=>e.target.type='time'} onBlur={(e)=>{if(!e.target.value)e.target.type='text';}}/></div>
+          <button className="btn btn-primary" type="submit" aria-label="Search parking" style={{height:46,minWidth:46}}><Icon name="search" size={20}/></button>
+        </form>
+      </div>
+    </section>
+  );
+}
+
+const DRIVER_BENEFITS=[
+  {ic:'shield',t:'Guaranteed spots',d:'Reserve ahead — no circling the block on game day.'},
+  {ic:'wallet',t:'Up to 50% cheaper',d:'Skip surge pricing at official venue lots.'},
+  {ic:'zap',t:'Instant directions',d:'Tap to navigate straight to your reserved space.'},
+];
+const HOST_BENEFITS=[
+  {ic:'dollar',t:'Passive income',d:'Earn from a driveway or spot you already own.'},
+  {ic:'sparkles',t:'List in minutes',d:'Photos, price and availability in one short form.'},
+  {ic:'shield',t:'Covered & insured',d:'Every booking is protected — you stay in control.'},
+];
+function Benefits(){
+  return (
+    <section className="section benefits">
+      <div className="bn-group">
+        <div className="bn-head"><h3>For Drivers &amp; Fans</h3><span className="bn-pill driver">Find parking</span></div>
+        <div className="tiles">
+          {DRIVER_BENEFITS.map(b=>(
+            <div className="tile" key={b.t}>
+              <div className="tile-ic driver"><Icon name={b.ic} size={22}/></div>
+              <h4>{b.t}</h4><p>{b.d}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="bn-group">
+        <div className="bn-head"><h3>For Hosts</h3><span className="bn-pill host">Earn money</span></div>
+        <div className="tiles">
+          {HOST_BENEFITS.map(b=>(
+            <div className="tile" key={b.t}>
+              <div className="tile-ic host"><Icon name={b.ic} size={22}/></div>
+              <h4>{b.t}</h4><p>{b.d}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FeaturedListings(){
+  return (
+    <section className="section listings">
+      <div className="sec-head"><h2>Spots near tonight's venue</h2><p>Verified hosts, transparent prices, instant booking.</p></div>
+      <div className="listing-grid">{LISTINGS.map(l=> <ListingCard key={l.id} l={l}/>)}</div>
+    </section>
+  );
+}
+
+/* ───────── Sign-up wizard ───────── */
+const STEP_LABELS=['Role','Account','Profile','Done'];
+const emailOk=(e)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+function pwScore(p){
+  let s=0;
+  if(p.length>=8)s++;
+  if(/[A-Z]/.test(p)&&/[a-z]/.test(p))s++;
+  if(/\d/.test(p))s++;
+  if(/[^A-Za-z0-9]/.test(p))s++;
+  return s; // 0..4
+}
+const PW_META=[
+  {label:'Too short',color:'var(--color-border)'},
+  {label:'Weak',color:'var(--color-danger)'},
+  {label:'Fair',color:'var(--color-secondary)'},
+  {label:'Good',color:'var(--color-primary)'},
+  {label:'Strong',color:'var(--color-success)'},
+];
+
+function SignupWizard({initialRole,onClose,onFinish}){
+  const saved=(()=>{try{return JSON.parse(localStorage.getItem('mkt_signup'))||{};}catch{return {};}})();
+  const [step,setStep]=useState(saved.step??0);
+  const [role,setRole]=useState(saved.role||initialRole||null);
+  const [email,setEmail]=useState(saved.email||'');
+  const [password,setPassword]=useState(''); // never persisted
+  const [profile,setProfile]=useState(saved.profile||{name:'',vehicle:'',payment:'',address:'',availability:'',price:''});
+  const [touched,setTouched]=useState({});
+
+  // Persist partial progress (excluding password) so a refresh doesn't lose data
+  useEffect(()=>{
+    try{localStorage.setItem('mkt_signup',JSON.stringify({step,role,email,profile}));}catch{}
+  },[step,role,email,profile]);
+
+  const pf=(k)=>(e)=>setProfile(p=>({...p,[k]:e.target.value}));
+  const score=pwScore(password);
+  const emailValid=emailOk(email);
+  const pwValid=password.length>=8;
+  const accountValid=emailValid&&pwValid;
+  const firstName=(profile.name.trim().split(/\s+/)[0])||'there';
+
+  const pickRole=(r)=>{ setRole(r); setStep(1); }; // auto-advance on selection
+  const back=()=>setStep(s=>Math.max(0,s-1));
+  const finishStep=()=>{ try{localStorage.removeItem('mkt_signup');}catch{} onFinish&&onFinish(role); onClose(); };
+
+  const profileValid = role==='host'
+    ? profile.name.trim() && profile.address.trim() && profile.price.trim()
+    : profile.name.trim();
+
+  return (
+    <div className="wiz-scrim" onMouseDown={(e)=>{if(e.target===e.currentTarget)onClose();}}>
+      <div className="wiz" role="dialog" aria-modal="true" aria-label="Sign up">
+        <div className="wiz-top">
+          <div className="brand"><span className="blob"><Icon name="car" size={18}/></span> Parking<span>Hub</span></div>
+          <button className="wiz-close" aria-label="Close sign up" onClick={onClose}><Icon name="close" size={18}/></button>
+        </div>
+
+        {/* Progress: Role -> Account -> Profile -> Done */}
+        <div className="steps">
+          {STEP_LABELS.map((lab,i)=>(
+            <div className={`step ${i===step?'active':''} ${i<step?'done':''}`} key={lab}>
+              <div className="step-dot">{i<step?<Icon name="check" size={14}/>:i+1}</div>
+              <div className="step-label">{lab}</div>
+              {i<STEP_LABELS.length-1 && <div className="step-line"/>}
+            </div>
+          ))}
+        </div>
+
+        <div className="wiz-body">
+          {step===0 && (
+            <div>
+              <div className="wiz-h">Are you a Driver/Fan or a Host?</div>
+              <div className="wiz-sub">Pick one to personalize your setup. You can do both later.</div>
+              <div className="role-cards">
+                <button className={`role-card ${role==='driver'?'sel-driver':''}`} onClick={()=>pickRole('driver')} aria-pressed={role==='driver'}>
+                  <div className="role-illus driver"><Icon name="car" size={28}/></div>
+                  <h4>Driver / Fan</h4>
+                  <p>I need to park near a venue or in the city.</p>
+                </button>
+                <button className={`role-card ${role==='host'?'sel-host':''}`} onClick={()=>pickRole('host')} aria-pressed={role==='host'}>
+                  <div className="role-illus host"><Icon name="home" size={28}/></div>
+                  <h4>Host</h4>
+                  <p>I have a spot or driveway to rent out.</p>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step===1 && (
+            <div>
+              <div className="wiz-h">Create your account</div>
+              <div className="wiz-sub">Continue with a provider or use your email.</div>
+              <div className="oauth">
+                <button className="oauth-btn" type="button" onClick={()=>setStep(2)}><GoogleMark/> Continue with Google</button>
+                <button className="oauth-btn" type="button" onClick={()=>setStep(2)}><AppleMark/> Continue with Apple</button>
+              </div>
+              <div className="divider">or sign up with email</div>
+              <div className="field">
+                <label htmlFor="su-email">Email</label>
+                <input id="su-email" className={`input ${touched.email&&!emailValid?'invalid':''}`} type="email" inputMode="email"
+                  placeholder="you@email.com" value={email}
+                  onChange={(e)=>setEmail(e.target.value)} onBlur={()=>setTouched(t=>({...t,email:true}))}/>
+                {touched.email&&!emailValid
+                  ? <div className="hint err"><Icon name="close" size={13}/> Enter a valid email address</div>
+                  : emailValid && <div className="hint ok"><Icon name="check" size={13}/> Looks good</div>}
+              </div>
+              <div className="field">
+                <label htmlFor="su-pw">Password</label>
+                <input id="su-pw" className={`input ${touched.pw&&!pwValid?'invalid':''}`} type="password"
+                  placeholder="At least 8 characters" value={password}
+                  onChange={(e)=>setPassword(e.target.value)} onBlur={()=>setTouched(t=>({...t,pw:true}))}/>
+                <div className="pw-meter" aria-hidden="true">
+                  {[0,1,2,3].map(i=> <div className="pw-seg" key={i} style={{background:i<score?PW_META[score].color:'var(--color-border)'}}/>)}
+                </div>
+                {password
+                  ? <div className={`hint ${pwValid?'ok':'muted'}`} style={{color:PW_META[score].color}}>{PW_META[score].label}{!pwValid?' — password must be 8+ characters':''}</div>
+                  : <div className="hint muted">Password must be 8+ characters</div>}
+              </div>
+              <div className="wiz-actions">
+                <button className="btn btn-outline" onClick={back}><Icon name="arrowLeft" size={18}/> Back</button>
+                <button className="btn btn-primary" disabled={!accountValid} onClick={()=>setStep(2)}>Continue</button>
+              </div>
+            </div>
+          )}
+
+          {step===2 && (
+            <div>
+              <div className="wiz-h">{role==='host'?'Tell us about your spot':'Complete your profile'}</div>
+              <div className="wiz-sub">{role==='host'?'Just the basics — you can refine your listing next.':'A couple of details and you\'re in.'}</div>
+
+              {role==='host' ? (
+                <div>
+                  <div className="field">
+                    <label htmlFor="p-name">Full name</label>
+                    <input id="p-name" className="input" placeholder="Jordan Vega" value={profile.name} onChange={pf('name')}/>
+                  </div>
+                  <div className="field">
+                    <label htmlFor="p-addr">Parking spot address</label>
+                    <input id="p-addr" className="input" placeholder="Street, number, city" value={profile.address} onChange={pf('address')}/>
+                  </div>
+                  <div className="field">
+                    <label htmlFor="p-avail">Availability <span className="opt">(optional)</span></label>
+                    <input id="p-avail" className="input" placeholder="e.g. Weekends & event nights" value={profile.availability} onChange={pf('availability')}/>
+                  </div>
+                  <div className="field">
+                    <label htmlFor="p-price">Price per day (USD)</label>
+                    <input id="p-price" className="input" type="number" min="1" placeholder="12" value={profile.price} onChange={pf('price')}/>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="field">
+                    <label htmlFor="p-name">Full name</label>
+                    <input id="p-name" className="input" placeholder="Alex Driver" value={profile.name} onChange={pf('name')}/>
+                  </div>
+                  <div className="field">
+                    <label htmlFor="p-veh">Vehicle <span className="opt">(optional)</span></label>
+                    <input id="p-veh" className="input" placeholder="Toyota Corolla · AC 234 LR" value={profile.vehicle} onChange={pf('vehicle')}/>
+                  </div>
+                  <div className="field">
+                    <label htmlFor="p-pay">Payment method <span className="opt">(optional)</span></label>
+                    <input id="p-pay" className="input" placeholder="Card ending 4242" value={profile.payment} onChange={pf('payment')}/>
+                  </div>
+                </div>
+              )}
+
+              <div className="wiz-actions">
+                <button className="btn btn-outline" onClick={back}><Icon name="arrowLeft" size={18}/> Back</button>
+                <button className="btn btn-primary" disabled={!profileValid} onClick={()=>setStep(3)}>Finish</button>
+              </div>
+            </div>
+          )}
+
+          {step===3 && (
+            <div>
+              <div className="success">
+                <div className="success-badge"><Icon name="check" size={36} label="Success"/></div>
+                <h3>You're all set, {firstName}!</h3>
+                <p>{role==='host'
+                  ? 'Your account is ready. Publish your first listing to start earning.'
+                  : 'Your account is ready. Let\'s find you a spot near the venue.'}</p>
+                <button className="btn btn-primary btn-block" style={{height:52,fontSize:16}} onClick={finishStep}>
+                  {role==='host' ? <><Icon name="home" size={20}/> List Your First Spot</> : <><Icon name="search" size={20}/> Find Parking Near Me</>}
+                </button>
+              </div>
+              <div className="wiz-actions">
+                <button className="btn btn-outline" onClick={back}><Icon name="arrowLeft" size={18}/> Back</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ───────── Style guide ───────── */
+function StyleGuide(){
+  const radii=[['--radius-button','8px'],['--radius-card','12px'],['--radius-pill','999px']];
+  const iconNames=Object.keys(ICONS);
+  return (
+    <section className="section sg">
+      <div className="sec-head"><h2>Style guide</h2><p>Every component is built from these tokens — no hardcoded values.</p></div>
+
+      <div className="sg-block">
+        <h3>Color tokens</h3>
+        <div className="sg-desc">Referenced as <code>var(--token)</code> everywhere.</div>
+        <div className="sw-grid">
+          {TOKENS.map(t=>(
+            <div className="sw" key={t.name}>
+              <div className="sw-color" style={{background:`var(${t.name})`}}/>
+              <div className="sw-meta"><div className="sw-name">{t.note}</div><div className="sw-val">{t.name}</div><div className="sw-val">{t.val}</div></div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="sg-block">
+        <h3>Typography</h3>
+        <div className="sg-desc">Headings: <code>--font-heading</code> (Sora) · Body: <code>--font-body</code> (DM Sans)</div>
+        <div className="type-sample">
+          <p style={{fontFamily:'var(--font-heading)',fontWeight:800,fontSize:34}}>Park Smart. Earn More.</p>
+          <p style={{fontFamily:'var(--font-heading)',fontWeight:700,fontSize:22}}>Section heading — Sora 700</p>
+          <p style={{color:'var(--color-muted)'}}>Body copy in DM Sans. The quick brown fox jumps over the lazy dog.</p>
+        </div>
+      </div>
+
+      <div className="sg-block">
+        <h3>Buttons</h3>
+        <div className="sg-desc">Shared classes used on every page.</div>
+        <div className="btn-demo">
+          <button className="btn btn-primary">Primary</button>
+          <button className="btn btn-secondary">Secondary</button>
+          <button className="btn btn-outline">Outline</button>
+          <button className="btn btn-ghost">Ghost</button>
+          <button className="btn btn-cta btn-primary">CTA · 200×56</button>
+        </div>
+      </div>
+
+      <div className="sg-block">
+        <h3>Radii &amp; shadow</h3>
+        <div className="sg-desc">Card uses <code>--radius-card</code> + <code>--shadow-card</code>.</div>
+        <div className="radii">
+          {radii.map(([n,v])=> <div className="box" key={n} style={{borderRadius:`var(${n})`}}>{n.replace('--radius-','')}<br/>{v}</div>)}
+          <div className="box" style={{background:'var(--color-surface)',border:'1px solid var(--color-border)',borderRadius:'var(--radius-card)',boxShadow:'var(--shadow-card)',color:'var(--color-muted)'}}>shadow-card</div>
+        </div>
+      </div>
+
+      <div className="sg-block">
+        <h3>Icon set — Lucide line icons</h3>
+        <div className="sg-desc">One library, fixed px sizing, SVG (crisp at 1x / 1.5x / 2x retina).</div>
+        <div className="icon-grid">
+          {iconNames.map(n=> <div className="icon-cell" key={n}><Icon name={n} size={22}/><span>{n}</span></div>)}
+        </div>
+        <div style={{marginTop:18,borderTop:'1px solid var(--color-border)',paddingTop:16}}>
+          <div className="sw-val" style={{marginBottom:10}}>Same icon at fixed sizes (vector = sharp on retina):</div>
+          <div className="density-row">
+            {[16,20,24,32].map(s=> <div className="d" key={s}><Icon name="mapPin" size={s}/>{s}px</div>)}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ───────── App shell ───────── */
+function Nav({onSignup,onView}){
+  return (
+    <header className="nav">
+      <div className="nav-inner">
+        <button className="brand" onClick={()=>onView('home')}><span className="blob"><Icon name="car" size={18}/></span> Parking<span>Hub</span></button>
+        <nav className="nav-links">
+          <button onClick={()=>onSignup('driver')}>Find parking</button>
+          <button onClick={()=>onSignup('host')}>Become a host</button>
+          <button onClick={()=>onView('styleguide')}>Style guide</button>
+        </nav>
+        <div className="nav-cta">
+          <button className="btn btn-ghost btn-sm" onClick={()=>onSignup('driver')}>Log in</button>
+          <button className="btn btn-primary btn-sm" onClick={()=>onSignup('driver')}>Sign up</button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function App(){
+  const [view,setView]=useState('home');
+  const [signup,setSignup]=useState(null); // {role} | null
+  const openSignup=(role)=>setSignup({role});
+
+  useEffect(()=>{ if(view!=='home') window.scrollTo(0,0); },[view]);
+
+  return (
+    <div>
+      <Nav onSignup={openSignup} onView={setView}/>
+      {view==='home' && <main>
+        <Hero onSignup={openSignup}/>
+        <Benefits/>
+        <FeaturedListings/>
+      </main>}
+      {view==='styleguide' && <main><StyleGuide/></main>}
+      <footer className="footer">
+        <div className="footer-inner">
+          <div className="brand"><span className="blob" style={{width:24,height:24}}><Icon name="car" size={15}/></span> Parking<span>Hub</span></div>
+          <span style={{marginLeft:'auto'}}>© 2026 Parking Hub · Park smart, earn more.</span>
+        </div>
+      </footer>
+      {signup && <SignupWizard initialRole={signup.role} onClose={()=>setSignup(null)} onFinish={()=>setView('home')}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
