@@ -1,5 +1,5 @@
 /*
- * End-to-end flow test for the Parking Hub app (../parking.html).
+ * End-to-end flow test for the Parking Haus app (../parking.html).
  *
  * Setup (first time):
  *   npm install

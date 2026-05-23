@@ -1,5 +1,5 @@
 /*
- * End-to-end flow test for the Parking Hub marketplace (../marketplace.html):
+ * End-to-end flow test for the Parking Haus marketplace (../marketplace.html):
  * hero + dual CTAs, the 4-step sign-up wizard, listing-card image fallback,
  * design-token usage, and responsive (mobile) CTA stacking.
  *
@@ -53,10 +53,17 @@ async function main() {
   ok((await hostCta.textContent()).includes('List My Parking Spot'), 'host CTA present');
   const bb = await driverCta.boundingBox();
   ok(bb.width >= 200 && bb.height >= 56, `driver CTA >= 200x56 (got ${Math.round(bb.width)}x${Math.round(bb.height)})`);
-  // Tokens applied (no hardcoded color): primary CTA background == --color-primary
-  const primaryToken = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim());
-  const ctaBg = await driverCta.evaluate((el) => getComputedStyle(el).backgroundColor);
-  ok(primaryToken === '#1A6BF0' && ctaBg === 'rgb(26, 107, 240)', `driver CTA uses --color-primary (${ctaBg})`);
+  // Tokens applied (no hardcoded color): primary CTA background must equal whatever
+  // --color-primary resolves to (brand-agnostic — works for any theme).
+  const { tokenRgb, ctaBg } = await driverCta.evaluate((el) => {
+    const probe = document.createElement('span');
+    probe.style.color = 'var(--color-primary)';
+    document.body.appendChild(probe);
+    const tokenRgb = getComputedStyle(probe).color;
+    probe.remove();
+    return { tokenRgb, ctaBg: getComputedStyle(el).backgroundColor };
+  });
+  ok(ctaBg === tokenRgb, `driver CTA background == --color-primary (${ctaBg})`);
 
   console.log('\nFLOW 2 — Benefit tiles: 3 per user type');
   ok((await page.locator('.bn-group').nth(0).locator('.tile').count()) === 3, 'Drivers: 3 benefit tiles');
