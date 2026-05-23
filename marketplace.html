@@ -275,11 +275,40 @@ button{font-family:var(--font-body);cursor:pointer;}
 .ml-empty{text-align:center;padding:46px 16px;color:var(--color-muted);font-size:14px;}
 .ml-empty .empty-ic{font-size:42px;opacity:.5;margin-bottom:8px;}
 
+/* ── Nav user / session ── */
+.nav-user{display:flex;align-items:center;gap:8px;}
+.nav-ava{width:30px;height:30px;border-radius:var(--radius-pill);background:var(--color-primary);color:var(--color-on-primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;}
+
+/* ── Owner admin backoffice ── */
+.admin{padding:30px 0 72px;}
+.admin-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px;}
+.owner-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--color-primary-700);background:var(--color-primary-50);border:1px solid var(--color-primary);padding:5px 11px;border-radius:var(--radius-pill);}
+.metrics4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.metric{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:16px;}
+.metric .m-label{font-size:11px;color:var(--color-muted);font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;}
+.metric .m-value{font-family:var(--font-heading);font-weight:800;font-size:30px;}
+.panel{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-card);box-shadow:var(--shadow-card);overflow:hidden;margin-bottom:18px;}
+.panel-h{padding:14px 16px;border-bottom:1px solid var(--color-border);font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:space-between;}
+.tbl-wrap{overflow-x:auto;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{text-align:left;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--color-muted);font-weight:700;padding:10px 16px;border-bottom:1px solid var(--color-border);white-space:nowrap;}
+.tbl td{padding:11px 16px;border-bottom:1px solid var(--color-border);font-size:14px;white-space:nowrap;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl .t-title{font-weight:600;}
+.badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:var(--radius-pill);}
+.badge.live{background:var(--color-secondary-50);color:var(--color-secondary-700);}
+.badge.demo{background:var(--color-border);color:var(--color-muted);}
+.link-btn{background:none;border:none;color:var(--color-danger);font-weight:600;font-size:13px;cursor:pointer;padding:0;}
+.link-btn:hover{text-decoration:underline;}
+.admin-empty{padding:24px 16px;color:var(--color-muted);font-size:14px;text-align:center;}
+.gate{max-width:430px;margin:56px auto;text-align:center;color:var(--color-muted);}
+
 /* ── Responsive ── */
 @media(max-width:860px){
   .tiles,.listing-grid{grid-template-columns:1fr 1fr;}
   .ls-grid{grid-template-columns:1fr;}
   .ls-preview{position:static;max-width:360px;}
+  .metrics4{grid-template-columns:1fr 1fr;}
 }
 @media(max-width:640px){
   .hero h1{font-size:38px;}
@@ -905,7 +934,7 @@ function ListSpotView({hostProfile={},editing=null,onPublish,onHome}){
 }
 
 /* ───────── Driver booking ───────── */
-function BookingSheet({listing,onClose}){
+function BookingSheet({listing,onClose,onConfirm}){
   const [date,setDate]=useState('');
   const [time,setTime]=useState('');
   const [done,setDone]=useState(false);
@@ -913,10 +942,7 @@ function BookingSheet({listing,onClose}){
 
   const confirm=()=>{
     if(!ready) return;
-    try{
-      const prev=JSON.parse(localStorage.getItem('mkt_bookings'))||[];
-      localStorage.setItem('mkt_bookings',JSON.stringify([{id:'B'+Date.now(),listingId:listing.id,title:listing.title,loc:listing.loc,price:listing.price,unit:listing.unit,date,time},...prev]));
-    }catch{}
+    onConfirm&&onConfirm({id:'B'+Date.now(),listingId:listing.id,title:listing.title,loc:listing.loc,price:listing.price,unit:listing.unit,date,time});
     setDone(true);
   };
   const goApp=()=>{ window.location.href='parking.html'; };
@@ -1000,8 +1026,121 @@ function MyListingsView({listings,onEdit,onUnpublish,onHome,onListNew}){
   );
 }
 
+/* ───────── Owner admin backoffice ─────────
+   NOTE: this is a CLIENT-SIDE gate for a no-backend prototype. It is not real
+   access control — for production, authorize the owner on a server. */
+const OWNER_EMAIL='hello@parkinghaus.com';
+
+function LoginModal({onClose,onLogin}){
+  const [email,setEmail]=useState('');
+  const [pw,setPw]=useState('');
+  const [touched,setTouched]=useState(false);
+  const valid=emailOk(email)&&pw.length>=1;
+  const submit=(e)=>{ if(e)e.preventDefault(); if(!valid)return; onLogin(email.trim().toLowerCase()); };
+  return (
+    <div className="wiz-scrim" onMouseDown={(e)=>{if(e.target===e.currentTarget)onClose();}}>
+      <div className="wiz" role="dialog" aria-modal="true" aria-label="Log in" style={{maxWidth:420}}>
+        <div className="wiz-top">
+          <div className="brand"><span className="blob"><Icon name="car" size={18}/></span> Parking<span>Haus</span></div>
+          <button className="wiz-close" aria-label="Close log in" onClick={onClose}><Icon name="close" size={18}/></button>
+        </div>
+        <form className="wiz-body" onSubmit={submit}>
+          <div className="wiz-h">Log in</div>
+          <div className="wiz-sub">Owners and members sign in here.</div>
+          <div className="field">
+            <label htmlFor="login-email">Email</label>
+            <input id="login-email" className={`input ${touched&&!emailOk(email)?'invalid':''}`} type="email" placeholder="you@email.com" value={email} onChange={(e)=>setEmail(e.target.value)} onBlur={()=>setTouched(true)}/>
+          </div>
+          <div className="field">
+            <label htmlFor="login-pw">Password</label>
+            <input id="login-pw" className="input" type="password" placeholder="Your password" value={pw} onChange={(e)=>setPw(e.target.value)}/>
+          </div>
+          <button className="btn btn-primary btn-block" style={{height:48,fontSize:15,marginTop:6}} type="submit" disabled={!valid}>Log in</button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function AdminView({listings,bookings,onRemoveListing,onCancelBooking}){
+  const demo=LISTINGS;
+  const gross=bookings.reduce((a,b)=>a+(Number(b.price)||0),0);
+  return (
+    <section className="section admin">
+      <div className="admin-head">
+        <div>
+          <h2 style={{fontSize:30}}>Owner backoffice</h2>
+          <p style={{color:'var(--color-muted)'}}>Marketplace overview &amp; moderation</p>
+        </div>
+        <span className="owner-chip"><Icon name="shield" size={14}/> {OWNER_EMAIL}</span>
+      </div>
+
+      <div className="metrics4">
+        <div className="metric"><div className="m-label">Live listings</div><div className="m-value">{listings.length}</div></div>
+        <div className="metric"><div className="m-label">Demo listings</div><div className="m-value">{demo.length}</div></div>
+        <div className="metric"><div className="m-label">Bookings</div><div className="m-value">{bookings.length}</div></div>
+        <div className="metric"><div className="m-label">Gross bookings</div><div className="m-value">${gross}</div></div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-h">Listings <span style={{fontSize:12,color:'var(--color-muted)',fontWeight:500}}>{listings.length+demo.length} total</span></div>
+        <div className="tbl-wrap">
+          <table className="tbl">
+            <thead><tr><th>Title</th><th>Host</th><th>Location</th><th>Price</th><th>Status</th><th aria-label="Actions"></th></tr></thead>
+            <tbody>
+              {listings.map(l=>(
+                <tr key={l.id}>
+                  <td className="t-title">{l.title}</td><td>{l.host}</td><td>{l.loc}</td><td>${l.price}{l.unit}</td>
+                  <td><span className="badge live">Live</span></td>
+                  <td style={{textAlign:'right'}}><button className="link-btn" onClick={()=>onRemoveListing(l.id)}>Remove</button></td>
+                </tr>
+              ))}
+              {demo.map(l=>(
+                <tr key={l.id}>
+                  <td className="t-title">{l.title}</td><td>{l.host}</td><td>{l.loc}</td><td>${l.price}{l.unit}</td>
+                  <td><span className="badge demo">Demo</span></td>
+                  <td></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-h">Bookings</div>
+        {bookings.length===0
+          ? <div className="admin-empty">No bookings yet.</div>
+          : <div className="tbl-wrap"><table className="tbl">
+              <thead><tr><th>Spot</th><th>Date</th><th>Arrival</th><th>Price</th><th aria-label="Actions"></th></tr></thead>
+              <tbody>
+                {bookings.map(b=>(
+                  <tr key={b.id}>
+                    <td className="t-title">{b.title}</td><td>{b.date||'—'}</td><td>{b.time||'—'}</td><td>${b.price}{b.unit||''}</td>
+                    <td style={{textAlign:'right'}}><button className="link-btn" onClick={()=>onCancelBooking(b.id)}>Cancel</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>}
+      </div>
+    </section>
+  );
+}
+
+function AdminGate(){
+  return (
+    <section className="section">
+      <div className="gate">
+        <div className="success-badge" style={{background:'var(--color-danger)'}}><Icon name="lock" size={34} label="Restricted"/></div>
+        <h3 style={{fontSize:22,fontWeight:800,color:'var(--color-text)',marginBottom:6}}>Owner access only</h3>
+        <p>This area is restricted to the Parking Haus owner. Log in with the owner account to continue.</p>
+      </div>
+    </section>
+  );
+}
+
 /* ───────── App shell ───────── */
-function Nav({onSignup,onView}){
+function Nav({onSignup,onView,session,isOwner,onLogin,onLogout}){
   return (
     <header className="nav">
       <div className="nav-inner">
@@ -1011,10 +1150,18 @@ function Nav({onSignup,onView}){
           <button onClick={()=>onSignup('host')}>Become a host</button>
           <button onClick={()=>onView('my-listings')}>My listings</button>
           <button onClick={()=>onView('styleguide')}>Style guide</button>
+          {isOwner && <button onClick={()=>onView('admin')}>Admin</button>}
         </nav>
         <div className="nav-cta">
-          <button className="btn btn-ghost btn-sm" onClick={()=>onSignup('driver')}>Log in</button>
-          <button className="btn btn-primary btn-sm" onClick={()=>onSignup('driver')}>Sign up</button>
+          {session
+            ? <div className="nav-user">
+                <span className="nav-ava">{(session.email[0]||'?').toUpperCase()}</span>
+                <button className="btn btn-ghost btn-sm" onClick={onLogout}>Log out</button>
+              </div>
+            : <>
+                <button className="btn btn-ghost btn-sm" onClick={onLogin}>Log in</button>
+                <button className="btn btn-primary btn-sm" onClick={()=>onSignup('driver')}>Sign up</button>
+              </>}
         </div>
       </div>
     </header>
@@ -1024,14 +1171,20 @@ function Nav({onSignup,onView}){
 function App(){
   const [view,setView]=useState('home');
   const [signup,setSignup]=useState(null); // {role} | null
+  const [showLogin,setShowLogin]=useState(false);
+  const [session,setSession]=useState(()=>{try{return JSON.parse(localStorage.getItem('mkt_session'))||null;}catch{return null;}});
   const [hostProfile,setHostProfile]=useState({});
   const [editing,setEditing]=useState(null); // listing being edited | null
   const [booking,setBooking]=useState(null); // listing being booked | null
   const [published,setPublished]=useState(()=>{try{return JSON.parse(localStorage.getItem('mkt_listings'))||[];}catch{return [];}});
+  const [bookings,setBookings]=useState(()=>{try{return JSON.parse(localStorage.getItem('mkt_bookings'))||[];}catch{return [];}});
   const openSignup=(role)=>setSignup({role});
   const goHome=()=>{ setEditing(null); setView('home'); };
+  const isOwner=!!session && session.email===OWNER_EMAIL;
 
   useEffect(()=>{try{localStorage.setItem('mkt_listings',JSON.stringify(published));}catch{}},[published]);
+  useEffect(()=>{try{localStorage.setItem('mkt_bookings',JSON.stringify(bookings));}catch{}},[bookings]);
+  useEffect(()=>{try{session?localStorage.setItem('mkt_session',JSON.stringify(session)):localStorage.removeItem('mkt_session');}catch{}},[session]);
   useEffect(()=>{ if(view!=='home') window.scrollTo(0,0); },[view]);
 
   // Wizard complete: drivers go to the live driver app, hosts go to the listing form.
@@ -1045,10 +1198,19 @@ function App(){
     return [l,...p];
   });
   const unpublish=(id)=>setPublished(p=>p.filter(x=>x.id!==id));
+  const addBooking=(b)=>setBookings(p=>[b,...p]);
+  const cancelBooking=(id)=>setBookings(p=>p.filter(x=>x.id!==id));
+
+  const onLogin=(email)=>{
+    setSession({email});
+    setShowLogin(false);
+    if(email===OWNER_EMAIL) setView('admin');
+  };
+  const onLogout=()=>{ setSession(null); setView('home'); };
 
   return (
     <div>
-      <Nav onSignup={openSignup} onView={setView}/>
+      <Nav onSignup={openSignup} onView={setView} session={session} isOwner={isOwner} onLogin={()=>setShowLogin(true)} onLogout={onLogout}/>
       {view==='home' && <main>
         <Hero onSignup={openSignup}/>
         <Benefits/>
@@ -1057,6 +1219,7 @@ function App(){
       {view==='styleguide' && <main><StyleGuide/></main>}
       {view==='list-spot' && <main><ListSpotView hostProfile={hostProfile} editing={editing} onPublish={upsertListing} onHome={goHome}/></main>}
       {view==='my-listings' && <main><MyListingsView listings={published} onEdit={(l)=>{setEditing(l);setView('list-spot');}} onUnpublish={unpublish} onHome={goHome} onListNew={()=>{setEditing(null);setView('list-spot');}}/></main>}
+      {view==='admin' && <main>{isOwner ? <AdminView listings={published} bookings={bookings} onRemoveListing={unpublish} onCancelBooking={cancelBooking}/> : <AdminGate/>}</main>}
       <footer className="footer">
         <div className="footer-inner">
           <div className="brand"><span className="blob" style={{width:24,height:24}}><Icon name="car" size={15}/></span> Parking<span>Haus</span></div>
@@ -1064,7 +1227,8 @@ function App(){
         </div>
       </footer>
       {signup && <SignupWizard initialRole={signup.role} onClose={()=>setSignup(null)} onFinish={onFinish}/>}
-      {booking && <BookingSheet listing={booking} onClose={()=>setBooking(null)}/>}
+      {booking && <BookingSheet listing={booking} onClose={()=>setBooking(null)} onConfirm={addBooking}/>}
+      {showLogin && <LoginModal onClose={()=>setShowLogin(false)} onLogin={onLogin}/>}
     </div>
   );
 }

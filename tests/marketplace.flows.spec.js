@@ -249,6 +249,52 @@ async function main() {
   const previewSrc = await page.locator('.ls-preview .lc-img').getAttribute('src');
   ok(previewSrc.startsWith('data:image'), 'preview card uses the uploaded photo (data URL)');
 
+  console.log('\nFLOW 15 — Admin backoffice is owner-only (hello@parkinghaus.com)');
+  await page.goto(APP_URL);
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('mkt_listings', JSON.stringify([{ id: 'L1', title: 'Owner test spot', loc: 'X', price: 10, unit: '/day', rating: null, host: 'Jordan', tags: [['shield', 'Gated']], type: 'Driveway', photoData: '', img: '', mine: true }]));
+    localStorage.setItem('mkt_bookings', JSON.stringify([{ id: 'B1', title: 'Owner test spot', loc: 'X', price: 10, unit: '/day', date: '2026-06-01', time: '' }]));
+  });
+  await page.reload();
+  await page.waitForSelector('.hero h1');
+  ok((await page.locator('.nav-links button', { hasText: 'Admin' }).count()) === 0, 'no Admin link for anonymous visitor');
+
+  // Non-owner login: still no admin access
+  await page.locator('.nav-cta button', { hasText: 'Log in' }).click();
+  await page.waitForSelector('#login-email');
+  await page.fill('#login-email', 'someone@else.com');
+  await page.fill('#login-pw', 'whatever');
+  await page.locator('.wiz .btn-primary', { hasText: 'Log in' }).click();
+  await page.waitForSelector('.nav-user');
+  ok((await page.locator('.nav-links button', { hasText: 'Admin' }).count()) === 0, 'non-owner sees no Admin link');
+  ok((await page.locator('.admin').count()) === 0, 'non-owner is not in the admin view');
+  await page.locator('.nav-user button', { hasText: 'Log out' }).click();
+  await page.waitForSelector('.nav-cta button');
+
+  // Owner login: admin link + dashboard
+  await page.locator('.nav-cta button', { hasText: 'Log in' }).click();
+  await page.waitForSelector('#login-email');
+  await page.fill('#login-email', 'hello@parkinghaus.com');
+  await page.fill('#login-pw', 'ownerpass');
+  await page.locator('.wiz .btn-primary', { hasText: 'Log in' }).click();
+  await page.waitForSelector('.admin');
+  ok((await page.locator('.nav-links button', { hasText: 'Admin' }).count()) === 1, 'owner sees the Admin link');
+  ok((await page.locator('.owner-chip').textContent()).includes('hello@parkinghaus.com'), 'admin shows owner email');
+  ok((await page.locator('.panel').first().locator('tbody tr').count()) >= 2, 'listings table shows live + demo rows');
+  ok((await page.locator('.metric .m-value').first().textContent()) === '1', 'live-listings metric = 1');
+  // Moderation: remove the live listing
+  await page.locator('.tbl .link-btn', { hasText: 'Remove' }).first().click();
+  ok((await page.locator('.badge.live').count()) === 0, 'owner removed the live listing');
+  // Cancel the booking
+  await page.locator('.tbl .link-btn', { hasText: 'Cancel' }).first().click();
+  ok((await page.locator('.admin-empty').count()) === 1, 'owner cancelled the booking (bookings empty)');
+
+  // Owner session persists across reload
+  await page.reload();
+  await page.waitForSelector('.nav-user');
+  ok((await page.locator('.nav-links button', { hasText: 'Admin' }).count()) === 1, 'owner session persists across reload');
+
   await browser.close();
   if (errors.length) {
     console.error('\n❌ JS errors during run:\n  ' + errors.join('\n  '));
