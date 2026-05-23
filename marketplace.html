@@ -1177,9 +1177,32 @@ function LoginModal({onClose,onLogin}){
   );
 }
 
-function AdminView({listings,bookings,onRemoveListing,onCancelBooking}){
+function AdminView({listings,bookings,onRemoveListing,onCancelBooking,onDeleteCustomer,onWipeDemo,remote}){
   const demo=LISTINGS;
   const gross=bookings.reduce((a,b)=>a+(Number(b.price)||0),0);
+  const [delEmail,setDelEmail]=useState('');
+  const [delArmed,setDelArmed]=useState(false);
+  const [delMsg,setDelMsg]=useState(null);
+  const [wipeArmed,setWipeArmed]=useState(false);
+  const [wipeMsg,setWipeMsg]=useState(null);
+  const emailValid=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(delEmail);
+
+  const doDelete=async()=>{
+    if(!emailValid) return;
+    if(!delArmed){ setDelArmed(true); return; }
+    setDelArmed(false);
+    const r=await onDeleteCustomer(delEmail.trim().toLowerCase());
+    if(!r.found) setDelMsg({ok:false,text:`No se encontró ningún cliente con ${delEmail}.`});
+    else setDelMsg({ok:true,text:`Eliminados ${r.listings} listing(s) y ${r.bookings} reserva(s) de ${delEmail}.`});
+    setDelEmail('');
+  };
+  const doWipe=()=>{
+    if(!wipeArmed){ setWipeArmed(true); return; }
+    setWipeArmed(false);
+    const n=onWipeDemo();
+    setWipeMsg(`Borrados ${n} registros de demo de este navegador.`);
+  };
+
   return (
     <section className="section admin">
       <div className="admin-head">
@@ -1237,6 +1260,49 @@ function AdminView({listings,bookings,onRemoveListing,onCancelBooking}){
                 ))}
               </tbody>
             </table></div>}
+      </div>
+
+      <div className="panel">
+        <div className="panel-h">Eliminar datos de un cliente</div>
+        <div style={{padding:'14px 16px'}}>
+          <p style={{fontSize:13,color:'var(--color-muted)',marginBottom:10}}>
+            Borra el perfil, los listings y las reservas asociados a un email (p. ej. para una solicitud de “borrar mi cuenta”).
+          </p>
+          {remote ? (
+            <div>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+                <input className="input" style={{maxWidth:300}} type="email" placeholder="email@cliente.com" value={delEmail}
+                  onChange={(e)=>{setDelEmail(e.target.value);setDelArmed(false);setDelMsg(null);}}/>
+                <button className="btn btn-outline" style={{color:'var(--color-danger)',borderColor:'var(--color-danger)'}} disabled={!emailValid} onClick={doDelete}>
+                  {delArmed?'Confirmar borrado':'Eliminar datos del cliente'}
+                </button>
+                {delArmed && <button className="btn btn-ghost btn-sm" onClick={()=>setDelArmed(false)}>Cancelar</button>}
+              </div>
+              {delMsg && <div className={`hint ${delMsg.ok?'ok':'err'}`} style={{marginTop:10}}><Icon name={delMsg.ok?'check':'close'} size={13}/> {delMsg.text}</div>}
+              <p style={{fontSize:12,color:'var(--color-muted)',marginTop:10}}>
+                Nota: eliminar la cuenta de acceso (auth) por completo requiere una llamada server-side con la service_role key.
+              </p>
+            </div>
+          ) : (
+            <div className="hint muted"><Icon name="lock" size={13}/> Disponible al conectar Supabase. En el modo demo no hay base de datos central de clientes.</div>
+          )}
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-h">Datos de demo (este navegador)</div>
+        <div style={{padding:'14px 16px'}}>
+          <p style={{fontSize:13,color:'var(--color-muted)',marginBottom:10}}>
+            Borra los listings y reservas de prueba guardados en el localStorage de este navegador. No afecta tu sesión.
+          </p>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <button className="btn btn-outline" style={{color:'var(--color-danger)',borderColor:'var(--color-danger)'}} onClick={doWipe}>
+              {wipeArmed?'Confirmar — borrar datos de demo':'Borrar datos de demo'}
+            </button>
+            {wipeArmed && <button className="btn btn-ghost btn-sm" onClick={()=>setWipeArmed(false)}>Cancelar</button>}
+          </div>
+          {wipeMsg && <div className="hint ok" style={{marginTop:10}}><Icon name="check" size={13}/> {wipeMsg}</div>}
+        </div>
       </div>
     </section>
   );
@@ -1308,6 +1374,15 @@ const db = {
     return data?{ ...b, id:data.id }:b;
   },
   async deleteBooking(id){ await sb.from('bookings').delete().eq('id',id); },
+  async deleteCustomerData(email){
+    const { data:prof } = await sb.from('profiles').select('id,email').eq('email',email).maybeSingle();
+    if(!prof) return { found:false, listings:0, bookings:0 };
+    const bk=await sb.from('bookings').delete({count:'exact'}).eq('driver_id',prof.id);
+    const ls=await sb.from('listings').delete({count:'exact'}).eq('host_id',prof.id);
+    // Note: removing the auth account (auth.users) requires the service_role key
+    // via a server-side admin call — not done from the frontend.
+    return { found:true, listings:ls.count||0, bookings:bk.count||0 };
+  },
   async uploadPhoto(file){
     const { data:{ user } } = await sb.auth.getUser();
     const path=`${user.id}/${Date.now()}_${file.name}`;
@@ -1392,6 +1467,20 @@ function App(){
     setBookings(p=>[b,...p]);
   };
   const cancelBooking=(id)=>{ if(REMOTE) db.deleteBooking(id); setBookings(p=>p.filter(x=>x.id!==id)); };
+  // Owner: delete every record tied to a customer email (requires Supabase).
+  const deleteCustomer=async(email)=>{
+    const r=await db.deleteCustomerData(email);
+    db.loadListings().then(setPublished);
+    db.loadBookings().then(setBookings);
+    return r;
+  };
+  // Local demo cleanup: clear test listings/bookings from this browser (keeps session).
+  const wipeDemo=()=>{
+    const n=published.length+bookings.length;
+    lsDel('mkt_listings'); lsDel('mkt_bookings'); lsDel('mkt_signup');
+    setPublished([]); setBookings([]);
+    return n;
+  };
 
   const onLogin=async(email)=>{
     if(REMOTE){ await db.sendMagicLink(email); return; } // session arrives via onAuthChange
@@ -1412,7 +1501,7 @@ function App(){
       {view==='styleguide' && <main><StyleGuide/></main>}
       {view==='list-spot' && <main><ListSpotView hostProfile={hostProfile} editing={editing} onPublish={upsertListing} onHome={goHome}/></main>}
       {view==='my-listings' && <main><MyListingsView listings={published} onEdit={(l)=>{setEditing(l);setView('list-spot');}} onUnpublish={unpublish} onHome={goHome} onListNew={()=>{setEditing(null);setView('list-spot');}}/></main>}
-      {view==='admin' && <main>{isOwner ? <AdminView listings={published} bookings={bookings} onRemoveListing={unpublish} onCancelBooking={cancelBooking}/> : <AdminGate/>}</main>}
+      {view==='admin' && <main>{isOwner ? <AdminView listings={published} bookings={bookings} onRemoveListing={unpublish} onCancelBooking={cancelBooking} onDeleteCustomer={deleteCustomer} onWipeDemo={wipeDemo} remote={REMOTE}/> : <AdminGate/>}</main>}
       <footer className="footer">
         <div className="footer-inner">
           <div className="brand"><span className="blob" style={{width:24,height:24}}><Icon name="car" size={15}/></span> Parking<span>Haus</span></div>

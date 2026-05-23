@@ -331,6 +331,37 @@ async function main() {
   const objFit = await page.locator('.lc-host img').first().evaluate((el) => getComputedStyle(el).objectFit);
   ok(objFit === 'cover', 'avatar image uses object-fit: cover');
 
+  console.log('\nFLOW 17 — Admin: customer-data deletion (gated) + demo wipe');
+  await page.goto(APP_URL);
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('mkt_listings', JSON.stringify([
+      { id: 'L1', title: 'Spot one', loc: 'A', price: 10, unit: '/day', rating: null, host: 'Jordan', tags: [], type: 'Driveway', photoData: '', img: '', mine: true },
+      { id: 'L2', title: 'Spot two', loc: 'B', price: 12, unit: '/day', rating: null, host: 'María', tags: [], type: 'Garage', photoData: '', img: '', mine: true },
+    ]));
+    localStorage.setItem('mkt_bookings', JSON.stringify([{ id: 'B1', title: 'Spot one', loc: 'A', price: 10, unit: '/day', date: '2026-06-01', time: '' }]));
+  });
+  await page.reload();
+  await page.waitForSelector('.hero h1');
+  await page.locator('.nav-cta button', { hasText: 'Log in' }).click();
+  await page.waitForSelector('#login-email');
+  await page.fill('#login-email', 'hello@parkinghaus.com');
+  await page.fill('#login-pw', 'ownerpass');
+  await page.locator('.wiz .btn-primary', { hasText: 'Log in' }).click();
+  await page.waitForSelector('.admin');
+  // The per-customer delete panel exists but is gated in local/demo mode
+  ok((await page.locator('.panel-h', { hasText: 'Eliminar datos de un cliente' }).count()) === 1, 'customer-deletion panel present');
+  ok((await page.locator('.admin input[type="email"]').count()) === 0, 'per-email deletion is gated until Supabase is connected');
+  ok((await page.locator('.admin .panel', { hasText: 'Eliminar datos de un cliente' }).locator('.hint.muted').count()) === 1, 'shows "needs Supabase" note in demo mode');
+  // Demo wipe clears the seeded listings/bookings (two-click confirm)
+  ok((await page.locator('.metric .m-value').first().textContent()) === '2', 'live-listings metric = 2 before wipe');
+  const wipeBtn = page.locator('.admin .panel', { hasText: 'Datos de demo' }).locator('.btn-outline');
+  await wipeBtn.click(); // arm
+  await wipeBtn.click(); // confirm
+  ok((await page.locator('.metric .m-value').first().textContent()) === '0', 'demo wipe cleared live listings');
+  ok((await page.locator('.admin .panel', { hasText: 'Datos de demo' }).locator('.hint.ok').count()) === 1, 'wipe shows a confirmation message');
+  ok((await page.locator('.nav-user').count()) === 1, 'owner stays logged in after wipe');
+
   await browser.close();
   if (errors.length) {
     console.error('\n❌ JS errors during run:\n  ' + errors.join('\n  '));
