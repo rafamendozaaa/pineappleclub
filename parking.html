@@ -325,7 +325,7 @@ function App(){
     return LOTS.filter(l=>l.name.toLowerCase().includes(q)||l.addr.toLowerCase().includes(q));
   },[search]);
 
-  const elapsed=active?now-active.startedAt:0;
+  const elapsed=active?Math.max(0,now-active.startedAt):0;
   const liveCost=active?(elapsed/3600000)*active.rate:0;
 
   return(
