@@ -259,6 +259,15 @@ button{font-family:var(--font-body);cursor:pointer;}
 .ph-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
 .ph-remove{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:var(--radius-pill);border:none;background:var(--color-surface);box-shadow:var(--shadow-card);color:var(--color-text);display:flex;align-items:center;justify-content:center;cursor:pointer;}
 
+/* ── Avatar (1:1, cover, overflow-clipped, with fallback) ── */
+.avatar{display:inline-flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;border-radius:var(--radius-pill);background:var(--color-primary-50);color:var(--color-primary-700);font-weight:700;line-height:1;}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block;}
+.avatar-fallback{display:flex;align-items:center;justify-content:center;width:100%;height:100%;}
+.avatar-upload{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.avatar-upload-actions{display:flex;flex-direction:column;align-items:flex-start;gap:6px;}
+.avatar-upload-actions .btn{cursor:pointer;}
+.avatar-upload-hint{font-size:12px;color:var(--color-muted);}
+
 /* ── Driver booking sheet ── */
 .bk-summary{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--color-border);border-radius:var(--radius-card);margin-bottom:8px;background:var(--color-bg);}
 .bk-thumb{width:74px;height:54px;border-radius:var(--radius-button);overflow:hidden;flex-shrink:0;background:var(--color-border);}
@@ -425,6 +434,22 @@ const LISTINGS=[
   {id:6,title:'Driveway w/ overnight allowed',loc:'Junín 1900, Recoleta',price:14,unit:'/day',rating:4.9,host:'Pablo',tags:[['shield','Gated'],['car','Van ok']],img:gradientPhoto('#0F172A','#475569')},
 ];
 
+/* ───────── Avatar (1:1, object-fit cover, fallback to initial/icon) ───────── */
+function Avatar({src,name,size=28,className=''}){
+  const [failed,setFailed]=useState(!src);
+  const initial=((name||'').trim()[0]||'').toUpperCase();
+  useEffect(()=>{ setFailed(!src); },[src]);
+  return (
+    <span className={`avatar ${className}`} style={{width:size,height:size}}>
+      {failed
+        ? <span className="avatar-fallback" style={{fontSize:Math.round(size*0.42)}} role="img" aria-label={name?`${name} (no photo)`:'No photo'}>
+            {initial || <Icon name="user" size={Math.round(size*0.55)}/>}
+          </span>
+        : <img src={src} alt={name?`${name}'s profile photo`:'Profile photo'} onError={()=>setFailed(true)}/>}
+    </span>
+  );
+}
+
 /* ───────── Listing card (bug-free image + text) ───────── */
 function ListingCard({l,onOpen}){
   const [failed,setFailed]=useState(!l.img);
@@ -456,7 +481,7 @@ function ListingCard({l,onOpen}){
           {l.tags.map(([ic,t])=> <span className="lc-tag" key={t}><Icon name={ic} size={13}/> {t}</span>)}
         </div>
         <div className="lc-foot">
-          <div className="lc-host">{l.host[0]}</div>
+          <Avatar className="lc-host" src={l.hostPhoto} name={l.host} size={28}/>
           <div className="lc-host-name">Hosted by {l.host}</div>
         </div>
       </div>
@@ -567,7 +592,7 @@ function SignupWizard({initialRole,onClose,onFinish}){
   const [role,setRole]=useState(saved.role||initialRole||null);
   const [email,setEmail]=useState(saved.email||'');
   const [password,setPassword]=useState(''); // never persisted
-  const [profile,setProfile]=useState(saved.profile||{name:'',vehicle:'',payment:'',address:'',availability:'',price:''});
+  const [profile,setProfile]=useState(saved.profile||{name:'',vehicle:'',payment:'',address:'',availability:'',price:'',photo:''});
   const [touched,setTouched]=useState({});
 
   // Persist partial progress (excluding password) so a refresh doesn't lose data
@@ -576,6 +601,14 @@ function SignupWizard({initialRole,onClose,onFinish}){
   },[step,role,email,profile]);
 
   const pf=(k)=>(e)=>setProfile(p=>({...p,[k]:e.target.value}));
+  const onProfilePhoto=(e)=>{
+    const file=e.target.files&&e.target.files[0];
+    if(!file) return;
+    if(REMOTE){ db.uploadPhoto(file).then(url=>setProfile(p=>({...p,photo:url}))).catch(err=>console.warn('Photo upload failed',err)); return; }
+    const r=new FileReader();
+    r.onload=()=>setProfile(p=>({...p,photo:String(r.result)}));
+    r.readAsDataURL(file);
+  };
   const score=pwScore(password);
   const emailValid=emailOk(email);
   const pwValid=password.length>=8;
@@ -670,6 +703,19 @@ function SignupWizard({initialRole,onClose,onFinish}){
             <div>
               <div className="wiz-h">{role==='host'?'Tell us about your spot':'Complete your profile'}</div>
               <div className="wiz-sub">{role==='host'?'Just the basics — you can refine your listing next.':'A couple of details and you\'re in.'}</div>
+
+              {/* Profile photo: an avatar control above the form (not one of the <=4 fields) */}
+              <div className="avatar-upload">
+                <Avatar src={profile.photo} name={profile.name} size={72}/>
+                <div className="avatar-upload-actions">
+                  <label className="btn btn-outline btn-sm">
+                    <input type="file" accept="image/*" hidden onChange={onProfilePhoto}/>
+                    <Icon name="image" size={16}/> {profile.photo?'Change photo':'Add photo'}
+                  </label>
+                  {profile.photo && <button type="button" className="link-btn" onClick={()=>setProfile(p=>({...p,photo:''}))}>Remove</button>}
+                  <div className="avatar-upload-hint">Profile photo (optional)</div>
+                </div>
+              </div>
 
               {role==='host' ? (
                 <div>
@@ -802,6 +848,18 @@ function StyleGuide(){
           </div>
         </div>
       </div>
+
+      <div className="sg-block">
+        <h3>Avatars</h3>
+        <div className="sg-desc">1:1, <code>object-fit: cover</code>, <code>overflow: hidden</code>; falls back to an initial, then a user icon.</div>
+        <div className="density-row">
+          <div className="d"><Avatar src={gradientPhoto('#1A6BF0','#0EA5E9')} name="María" size={48}/>photo</div>
+          <div className="d"><Avatar name="María" size={48}/>initial</div>
+          <div className="d"><Avatar size={48}/>icon</div>
+          <div className="d"><Avatar name="Diego" size={32}/>32px</div>
+          <div className="d"><Avatar name="Diego" size={24}/>24px</div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -819,11 +877,11 @@ function ListSpotView({hostProfile={},editing=null,onPublish,onHome}){
   const init = editing ? {
     title:editing.title, address:editing.loc, price:String(editing.price),
     unit:editing.unit||'/day', type:editing.type||'Driveway',
-    photoData:editing.photoData||'', host:editing.host||'You',
+    photoData:editing.photoData||'', host:editing.host||'You', hostPhoto:editing.hostPhoto||'',
   } : {
     title:'', address:hostProfile.address||'', price:hostProfile.price||'',
     unit:'/day', type:'Driveway', photoData:'',
-    host:((hostProfile.name||'You').trim().split(/\s+/)[0])||'You',
+    host:((hostProfile.name||'You').trim().split(/\s+/)[0])||'You', hostPhoto:hostProfile.photo||'',
   };
   const [form,setForm]=useState(init);
   const [amenities,setAmenities]=useState(editing ? editing.tags.map(t=>t[0]) : ['shield','zap']);
@@ -853,6 +911,7 @@ function ListSpotView({hostProfile={},editing=null,onPublish,onHome}){
     type:form.type,
     rating:null,
     host:form.host||'You',
+    hostPhoto:form.hostPhoto,
     tags:amenities.slice(0,3).map(ic=>[ic,amenityLabel(ic)]),
     photoData:form.photoData,
     img:form.photoData||gradientPhoto(...PHOTO_PRESETS[form.title.length%PHOTO_PRESETS.length]),
@@ -1274,7 +1333,7 @@ function Nav({onSignup,onView,session,isOwner,onLogin,onLogout}){
         <div className="nav-cta">
           {session
             ? <div className="nav-user">
-                <span className="nav-ava">{(session.email[0]||'?').toUpperCase()}</span>
+                <Avatar src={session.photo} name={session.email} size={30}/>
                 <button className="btn btn-ghost btn-sm" onClick={onLogout}>Log out</button>
               </div>
             : <>

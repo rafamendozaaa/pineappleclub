@@ -295,6 +295,42 @@ async function main() {
   await page.waitForSelector('.nav-user');
   ok((await page.locator('.nav-links button', { hasText: 'Admin' }).count()) === 1, 'owner session persists across reload');
 
+  console.log('\nFLOW 16 — Profile photo (1:1) flows onto the host avatar; seed cards fall back');
+  const avatarPng = '/tmp/mkt-fixture.png';
+  fs.writeFileSync(avatarPng, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64'));
+  await page.goto(APP_URL);
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.waitForSelector('.listing-grid .lc');
+  ok((await page.locator('.listing-grid .lc .lc-host').count()) === 6, 'every seed card has a host avatar');
+  ok((await page.locator('.listing-grid .lc .lc-host img').count()) === 0, 'seed host avatars fall back to initial (no photo)');
+  // Host onboarding with a profile photo
+  await page.locator('.cta-row .btn-secondary').click();
+  await page.waitForSelector('.wiz');
+  await page.locator('.role-card').nth(1).click(); // host
+  await page.waitForSelector('.oauth');
+  await page.locator('.oauth-btn').first().click(); // -> profile step
+  await page.waitForSelector('.avatar-upload');
+  await page.setInputFiles('.avatar-upload input[type="file"]', avatarPng);
+  await page.waitForSelector('.avatar-upload .avatar img');
+  ok((await page.locator('.avatar-upload .avatar img').count()) === 1, 'uploaded profile photo previews as a 1:1 avatar');
+  await page.fill('#p-name', 'María López');
+  await page.fill('#p-addr', 'Av. Corrientes 1');
+  await page.fill('#p-price', '14');
+  await page.locator('.wiz-actions .btn-primary').click(); // Finish -> Done
+  await page.waitForSelector('.success');
+  await page.locator('.success .btn-primary').click(); // -> list-spot
+  await page.waitForSelector('.ls-form');
+  ok((await page.locator('.ls-preview .lc-host img').count()) === 1, 'host photo shows on the listing preview avatar');
+  await page.fill('#ls-title', 'Gated garage with attendant');
+  await page.locator('.ls-form .btn-primary', { hasText: 'Publish' }).click();
+  await page.waitForSelector('.ls-success');
+  await page.locator('.ls-success .btn-primary', { hasText: 'View on home' }).click();
+  await page.waitForSelector('.listing-grid');
+  ok((await page.locator('.listing-grid .lc').first().locator('.lc-host img').count()) === 1, 'published card shows the host profile photo');
+  const objFit = await page.locator('.lc-host img').first().evaluate((el) => getComputedStyle(el).objectFit);
+  ok(objFit === 'cover', 'avatar image uses object-fit: cover');
+
   await browser.close();
   if (errors.length) {
     console.error('\n❌ JS errors during run:\n  ' + errors.join('\n  '));
