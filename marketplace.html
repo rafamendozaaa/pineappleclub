@@ -426,12 +426,12 @@ function gradientPhoto(a,b){
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
 }
 const LISTINGS=[
-  {id:1,title:'Covered garage by the stadium',loc:'Av. Corrientes 1200',price:18,unit:'/event',rating:4.9,host:'María',tags:[['shield','Gated'],['zap','EV']],img:gradientPhoto('#1A6BF0','#0EA5E9')},
-  {id:2,title:'Private driveway — 2 min walk',loc:'Honduras 5400, Palermo',price:12,unit:'/day',rating:4.8,host:'Diego',tags:[['key','Self-park'],['clock','24h']],img:gradientPhoto('#F59E0B','#F97316')},
-  {id:3,title:'Secure lot, valet on match days',loc:'Olga Cossettini 850',price:25,unit:'/event',rating:5.0,host:'Lucía',tags:[['shield','Guarded'],['car','SUV ok']],img:''/* intentionally broken -> placeholder fallback */},
-  {id:4,title:'Rooftop spot with great views',loc:'Cabildo 3200, Belgrano',price:9,unit:'/day',rating:4.6,host:'Tomás',tags:[['sparkles','New'],['zap','EV']],img:gradientPhoto('#16A34A','#0EA5E9')},
-  {id:5,title:'Underground space near subte',loc:'Rivadavia 5100, Caballito',price:7,unit:'/day',rating:4.7,host:'Sofía',tags:[['key','Self-park'],['clock','24h']],img:gradientPhoto('#7C3AED','#1A6BF0')},
-  {id:6,title:'Driveway w/ overnight allowed',loc:'Junín 1900, Recoleta',price:14,unit:'/day',rating:4.9,host:'Pablo',tags:[['shield','Gated'],['car','Van ok']],img:gradientPhoto('#0F172A','#475569')},
+  {id:1,title:'Street spot by the stadium',loc:'Av. Figueroa Alcorta 7400',price:22,unit:'/event',rating:4.9,host:'María',tags:[['shield','Guarded'],['clock','Late hrs']],img:'assets/listings/stadium-night.jpg'},
+  {id:2,title:'Private driveway — 2 min walk',loc:'Honduras 5400, Palermo',price:12,unit:'/day',rating:4.8,host:'Diego',tags:[['key','Self-park'],['clock','24h']],img:'assets/listings/driveway-walk.jpg'},
+  {id:3,title:'Front-yard parking for events',loc:'Olga Cossettini 850',price:16,unit:'/event',rating:5.0,host:'Lucía',tags:[['shield','Gated'],['car','SUV ok']],img:'assets/listings/event-frontyard.jpg'},
+  {id:4,title:'Quiet gravel driveway',loc:'Cabildo 3200, Belgrano',price:9,unit:'/day',rating:4.6,host:'Tomás',tags:[['sparkles','New'],['key','Self-park']],img:'assets/listings/gravel-driveway.jpg'},
+  {id:5,title:'Spacious driveway — fits several',loc:'Rivadavia 5100, Caballito',price:10,unit:'/day',rating:4.7,host:'Sofía',tags:[['key','Self-park'],['car','SUV ok']],img:'assets/listings/aerial-driveway.jpg'},
+  {id:6,title:'Driveway w/ overnight allowed',loc:'Junín 1900, Recoleta',price:14,unit:'/day',rating:4.9,host:'Pablo',tags:[['shield','Gated'],['car','Van ok']],img:'assets/listings/sunset-overnight.jpg'},
 ];
 
 /* ───────── Avatar (1:1, object-fit cover, fallback to initial/icon) ───────── */

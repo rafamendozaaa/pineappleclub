@@ -69,14 +69,24 @@ async function main() {
   ok((await page.locator('.bn-group').nth(0).locator('.tile').count()) === 3, 'Drivers: 3 benefit tiles');
   ok((await page.locator('.bn-group').nth(1).locator('.tile').count()) === 3, 'Hosts: 3 benefit tiles');
 
-  console.log('\nFLOW 3 — Listing card image fallback (broken src -> placeholder)');
-  ok((await page.locator('.lc').count()) === 6, '6 listing cards');
-  ok((await page.locator('.lc-placeholder').count()) === 1, 'one card shows grey placeholder for broken image');
-  ok((await page.locator('.lc-img').count()) === 5, 'five cards render an <img>');
+  console.log('\nFLOW 3 — Listing cards: real photos render + broken-src placeholder fallback');
+  // All 6 demo listings now have real photos; inject a published listing with an
+  // empty src to still exercise the grey-placeholder fallback path.
+  await page.evaluate(() => localStorage.setItem('mkt_listings', JSON.stringify([
+    { id: 'BROKEN', title: 'Fallback test spot', loc: 'X', price: 5, unit: '/day', rating: null, host: 'Test', tags: [], img: '', mine: true },
+  ])));
+  await page.reload();
+  await page.waitForSelector('.hero h1');
+  ok((await page.locator('.lc').count()) === 7, '7 listing cards (6 demo + 1 seeded)');
+  ok((await page.locator('.lc-placeholder').count()) === 1, 'card with empty src shows grey placeholder');
+  ok((await page.locator('.lc-img').count()) === 6, 'six demo cards render a real <img>');
   const imgFit = await page.locator('.lc-img').first().evaluate((el) => getComputedStyle(el).objectFit);
   ok(imgFit === 'cover', 'listing image uses object-fit: cover');
   const favLabel = await page.locator('.lc-fav').first().getAttribute('aria-label');
   ok(!!favLabel, `icon-only save button has aria-label ("${favLabel}")`);
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.waitForSelector('.hero h1');
 
   console.log('\nFLOW 4 — CTA opens wizard with role pre-selected, auto-advances');
   await hostCta.click();
